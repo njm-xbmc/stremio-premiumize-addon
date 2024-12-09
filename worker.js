@@ -332,7 +332,7 @@ function parseFile(file) {
 
     const encodeTagsPatterns = {
         "x265": /(?:\[)?\b(x265|h265|hevc|h\.265)\b(?:\])?/i,
-        "x264": /(?:\[)?\b(x264|h264|avc|h\.265)\b(?:\])?/i,
+        "x264": /(?:\[)?\b(x264|h264|avc|h\.264)\b(?:\])?/i,
     };
 
     let resolution = Object.entries(resolutionPatterns).find(([_, pattern]) => pattern.test(file.name))?.[0] || "Unknown";
