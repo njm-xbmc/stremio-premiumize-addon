@@ -436,7 +436,7 @@ async function buildSearchQuery(streamRequest) {
         formats.push(...getFormats(zeroPaddedSeason, zeroPaddedEpisode));
     }
 
-    query += ` and (${formats.map(formatList => `(${formatList.map(format => `name contains '${format}'`).join(" and ")})`).join(" or ")})`;
+    query += ` and (${formats.map(formatList => `(${formatList.map(format => `fullText contains '${format}'`).join(" and ")})`).join(" or ")})`;
     
     return query;
 }
