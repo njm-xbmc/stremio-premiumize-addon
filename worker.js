@@ -210,10 +210,10 @@ async function handleRequest(request) {
             return createJsonResponse({
                 streams: [
                     {
-                        name: MANIFEST.name,
+                        name: `[⚠️] ${MANIFEST.name}`,
                         description:
-                            "Invalid configuration, please enable and check the logs for more information",
-                        externalUrl: "/",
+                            "Invalid configuration\nEnable and check the logs for more information\nClick for setup instructions",
+                        externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
                     },
                 ],
             });
@@ -342,9 +342,9 @@ async function getStreams(streamRequest) {
     if (!token) {
         return [
             {
-                name: MANIFEST.name,
-                description: "Failed to get access token",
-                externalUrl: "/",
+                name: `[⚠️] ${MANIFEST.name}`,
+                description: "Invalid Credentials\nEnable and check the logs for more information\nClick for setup instructions",
+                externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
             },
         ];
     }
