@@ -348,9 +348,9 @@ function parseFile(file) {
         visualTags = visualTags.filter(tag => tag !== "HDR");
     }
 
-    const formattedSize = file.size > 1024 * 1024 * 1024 
-        ? `${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB` 
-        : `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+    const formattedSize = file.size > 1000 * 1000 * 1000 
+        ? `${(file.size / (1000 * 1000 * 1000)).toFixed(2)} GB` 
+        : `${(file.size / (1000 * 1000)).toFixed(2)} MB`;
 
     return {
         id: file.id,
