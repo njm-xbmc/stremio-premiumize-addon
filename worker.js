@@ -274,65 +274,65 @@ async function getStreams(streamRequest) {
 
 function parseFile(file) {
     const resolutionPatterns = {
-        "2160p": /(?:\[)?\b(4k|2160p|uhd)\b(?:\])?/i,
-        "1080p": /(?:\[)?\b(1080p|fhd)\b(?:\])?/i,
-        "720p": /(?:\[)?\b(720p|hd)\b(?:\])?/i,
-        "480p": /(?:\[)?\b(480p|sd)\b(?:\])?/i,
+        "2160p": /(?:\[)?\b(_?4k|_?2160p|_?uhd_?)\b(?:\])?/i,
+        "1080p": /(?:\[)?\b(_?1080p|_?fhd_?)\b(?:\])?/i,
+        "720p": /(?:\[)?\b(_?720p|_?hd_?)\b(?:\])?/i,
+        "480p": /(?:\[)?\b(_?480p|_?sd_?)\b(?:\])?/i,
     };
-
+    
     const qualityPatterns = {
-        "BluRay REMUX": /(?:\[)?\b(bluray[\.\-_]?remux|bd[\.\-_]?remux)\b(?:\])?/i,
-        "BDRip": /(?:\[)?\b(bd[\.\-_]?rip|bluray[\.\-_]?rip|br[\.\-_]?rip)\b(?:\])?/i,
-        "BluRay": /(?:\[)?\b(bluray|bd)\b(?:\])?/i,
-        "HDRip": /(?:\[)?\b(hd[\.\-_]?rip|hdrip)\b(?:\])?/i,
-        "WEB-DL": /(?:\[)?\b(web[\.\-_]?dl|web[\.\-_]?dl)\b(?:\])?/i,
-        "WEBRip": /(?:\[)?\b(web[\.\-_]?rip|web[\.\-_]?rip)\b(?:\])?/i,
-        "WEB": /(?:\[)?\b(web)\b(?:\])?/i,
-        "CAM/TS": /(?:\[)?\b(cam|ts|telesync|hdts|hdtc|telecine)\b(?:\])?/i,
+        "BluRay REMUX": /(?:\[)?\b(_?bluray[\.\-_]?remux|_?bd[\.\-_]?remux_?)\b(?:\])?/i,
+        "BDRip": /(?:\[)?\b(_?bd[\.\-_]?rip|_?bluray[\.\-_]?rip|_?br[\.\-_]?rip_?)\b(?:\])?/i,
+        "BluRay": /(?:\[)?\b(_?bluray|_?bd_?)\b(?:\])?/i,
+        "HDRip": /(?:\[)?\b(_?hd[\.\-_]?rip|_?hdrip_?)\b(?:\])?/i,
+        "WEB-DL": /(?:\[)?\b(_?web[\.\-_]?dl|_?web[\.\-_]?dl_?)\b(?:\])?/i,
+        "WEBRip": /(?:\[)?\b(_?web[\.\-_]?rip|_?web[\.\-_]?rip_?)\b(?:\])?/i,
+        "WEB": /(?:\[)?\b(_?web_?)\b(?:\])?/i,
+        "CAM/TS": /(?:\[)?\b(_?cam|_?ts|_?telesync|_?hdts|_?hdtc|_?telecine_?)\b(?:\])?/i,
     };
-
+    
     const visualTagsPatterns = {
-        "HDR10+": /(?:\[)?\b(hdr10[\.\-_]?[\+]?|hdr10plus)\b(?:\])?/i,
-        "HDR10": /(?:\[)?\b(hdr10)\b(?:\])?/i,
-        "HDR": /(?:\[)?\b(hdr)\b(?:\])?/i,
-        "DV": /(?:\[)?\b(dolby[\.\-_]?vision|dolby[\.\-_]?vision[\.\-_]?atmos|dv)\b(?:\])?/i,
-        "IMAX": /(?:\[)?\b(imax)\b(?:\])?/i,
+        "HDR10+": /(?:\[)?\b(_?hdr10[\.\-_]?[\+]?|_?hdr10plus_?)\b(?:\])?/i,
+        "HDR10": /(?:\[)?\b(_?hdr10_?)\b(?:\])?/i,
+        "HDR": /(?:\[)?\b(_?hdr_?)\b(?:\])?/i,
+        "DV": /(?:\[)?\b(_?dolby[\.\-_]?vision|_?dolby[\.\-_]?vision[\.\-_]?atmos|_?dv_?)\b(?:\])?/i,
+        "IMAX": /(?:\[)?\b(_?imax_?)\b(?:\])?/i,
     };
-
+    
     const audioTagsPatterns = {
-        "Atmos": /(?:\[)?\b(atmos)\b(?:\])?/i,
-        "DDP5.1": /(?:\[)?\b(ddp5\.1|dolby[\.\-_]?digital[\.\-_]?plus[\.\-_]?5\.1)\b(?:\])?/i,
-        "DDP": /(?:\[)?\b(ddp|dolby[\.\-_]?digital[\.\-_]?plus)\b(?:\])?/i,
-        "DD": /(?:\[)?\b(dd|dolby[\.\-_]?digital)\b(?:\])?/i,
-        "DTS-HD": /(?:\[)?\b(dts[\.\-_]?hd[\.\-_]?ma)\b(?:\])?/i,
-        "DTS": /(?:\[)?\b(dts)\b(?:\])?/i,
-        "TrueHD": /(?:\[)?\b(truehd)\b(?:\])?/i,
-        "5.1": /(?:\[)?\b(5\.1)\b(?:\])?/i,
-        "7.1": /(?:\[)?\b(7\.1)\b(?:\])?/i,
+        "Atmos": /(?:\[)?\b(_?atmos_?)\b(?:\])?/i,
+        "DDP5.1": /(?:\[)?\b(_?ddp5\.1|_?dolby[\.\-_]?digital[\.\-_]?plus[\.\-_]?5\.1_?)\b(?:\])?/i,
+        "DDP": /(?:\[)?\b(_?ddp|_?dolby[\.\-_]?digital[\.\-_]?plus_?)\b(?:\])?/i,
+        "DD": /(?:\[)?\b(_?dd|_?dolby[\.\-_]?digital_?)\b(?:\])?/i,
+        "DTS-HD": /(?:\[)?\b(_?dts[\.\-_]?hd[\.\-_]?ma_?)\b(?:\])?/i,
+        "DTS": /(?:\[)?\b(_?dts_?)\b(?:\])?/i,
+        "TrueHD": /(?:\[)?\b(_?truehd_?)\b(?:\])?/i,
+        "5.1": /(?:\[)?\b(_?5\.1_?)\b(?:\])?/i,
+        "7.1": /(?:\[)?\b(_?7\.1_?)\b(?:\])?/i,
     };
-
+    
     const languageTagsPatterns = {
-        "English": /(?:\[)?\b(english|eng)\b(?:\])?/i,
-        "Hindi": /(?:\[)?\b(hindi|hin)\b(?:\])?/i,
-        "Tamil": /(?:\[)?\b(tamil|tam)\b(?:\])?/i,
-        "Telugu": /(?:\[)?\b(telugu)\b(?:\])?/i,
-        "Malayalam": /(?:\[)?\b(malayalam)\b(?:\])?/i,
-        "Kannada": /(?:\[)?\b(kannada)\b(?:\])?/i,
-        "Bengali": /(?:\[)?\b(bengali)\b(?:\])?/i,
-        "Punjabi": /(?:\[)?\b(punjabi)\b(?:\])?/i,
-        "Marathi": /(?:\[)?\b(marathi)\b(?:\])?/i,
-        "French": /(?:\[)?\b(french|fra)\b(?:\])?/i,
-        "Spanish": /(?:\[)?\b(spanish|spa)\b(?:\])?/i,
-        "German": /(?:\[)?\b(german|deu)\b(?:\])?/i,
-        "Italian": /(?:\[)?\b(italian|ita)\b(?:\])?/i,
-        "Japanese": /(?:\[)?\b(japanese|jpn)\b(?:\])?/i,
-        "Korean": /(?:\[)?\b(korean|kor)\b(?:\])?/i,
-        "Chinese": /(?:\[)?\b(chinese|chn)\b(?:\])?/i,
+        "English": /(?:\[)?\b(_?english|_?eng_?)\b(?:\])?/i,
+        "Hindi": /(?:\[)?\b(_?hindi|_?hin_?)\b(?:\])?/i,
+        "Tamil": /(?:\[)?\b(_?tamil|_?tam_?)\b(?:\])?/i,
+        "Telugu": /(?:\[)?\b(_?telugu_?)\b(?:\])?/i,
+        "Malayalam": /(?:\[)?\b(_?malayalam_?)\b(?:\])?/i,
+        "Kannada": /(?:\[)?\b(_?kannada_?)\b(?:\])?/i,
+        "Bengali": /(?:\[)?\b(_?bengali_?)\b(?:\])?/i,
+        "Punjabi": /(?:\[)?\b(_?punjabi_?)\b(?:\])?/i,
+        "Marathi": /(?:\[)?\b(_?marathi_?)\b(?:\])?/i,
+        "French": /(?:\[)?\b(_?french|_?fra_?)\b(?:\])?/i,
+        "Spanish": /(?:\[)?\b(_?spanish|_?spa_?)\b(?:\])?/i,
+        "German": /(?:\[)?\b(_?german|_?deu_?)\b(?:\])?/i,
+        "Italian": /(?:\[)?\b(_?italian|_?ita_?)\b(?:\])?/i,
+        "Japanese": /(?:\[)?\b(_?japanese|_?jpn_?)\b(?:\])?/i,
+        "Korean": /(?:\[)?\b(_?korean|_?kor_?)\b(?:\])?/i,
+        "Chinese": /(?:\[)?\b(_?chinese|_?chn_?)\b(?:\])?/i,
     };
-
+    
     const encodeTagsPatterns = {
-        "x265": /(?:\[)?\b(x265|h265|hevc|h\.265)\b(?:\])?/i,
-        "x264": /(?:\[)?\b(x264|h264|avc|h\.264)\b(?:\])?/i,
+        "x265": /(?:\[)?\b(_?x265|_?h265|_?hevc|_?h\.265_?)\b(?:\])?/i,
+        "x264": /(?:\[)?\b(_?x264|_?h264|_?avc|_?h\.264_?)\b(?:\])?/i,
     };
 
     let resolution = Object.entries(resolutionPatterns).find(([_, pattern]) => pattern.test(file.name))?.[0] || "Unknown";
