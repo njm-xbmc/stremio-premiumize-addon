@@ -562,7 +562,7 @@ async function buildSearchQuery(streamRequest) {
     }
 
     if (
-        zeroPaddedSeason !== season.toString() ||
+        zeroPaddedSeason !== season.toString() &&
         zeroPaddedEpisode !== episode.toString()
     ) {
         formats.push(...getFormats(zeroPaddedSeason, zeroPaddedEpisode));
