@@ -1,13 +1,7 @@
-var credentials = {
-    client_id: "YOUR_CLIENT_ID",
-    client_secret: "YOUR_CLIENT_SECRET",
-    refresh_token: "YOUR_REFRESH_TOKEN",
-};
-
 const CREDENTIALS = {
-    clientId: credentials.client_id,
-    clientSecret: credentials.client_secret,
-    refreshToken: credentials.refresh_token,
+    clientId: "YOUR_CLIENT_ID",
+    clientSecret: "YOUR_CLIENT_SECRET",
+    refreshToken: "YOUR_REFRESH_TOKEN",
 };
 
 const CONFIG = {
