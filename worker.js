@@ -545,6 +545,9 @@ async function buildSearchQuery(streamRequest) {
             [`s${season}.e${episode}`],
             [`${season}x${episode}`],
             [`s${season}xe${episode}`],
+            [`season ${season}`, `episode ${episode}`],
+            [`season ${season} episode ${episode}`],
+            [`s${season}`, `ep${episode}`],
         ];
     };
 
