@@ -450,7 +450,7 @@ async function buildSearchQuery(streamRequest) {
     }
 
     if (streamRequest.type === "movie") {
-        return query + ` and fullText contains '${year}'`;
+        return query + ` and name contains '${year}'`;
     } 
 
     // handle query for shows
