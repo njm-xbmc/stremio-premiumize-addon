@@ -65,7 +65,7 @@ const REGEX_PATTERNS = {
             /(?:\[)?\b_?(bluray[\s\.\-_]?remux|bd[\s\.\-_]?remux)_?\b(?:\])?/i,
         BDRip: /(?:\[)?\b_?(bd[\s\.\-_]?rip|bluray[\s\.\-_]?rip|br[\s\.\-_]?rip)_?\b(?:\])?/i,
         BluRay: /(?:\[)?\b_?(bluray|bd)_?\b(?:\])?/i,
-        HDRip: /(?:\[)?\b_?(hd[\s\.\-_]?rip|hdrip)_?\b(?:\])?/i,
+        HDRip: /(?:\[)?\b_?(hd[\s\.\-_]?rip)_?\b(?:\])?/i,
         "WEB-DL": /(?:\[)?\b_?(web[\s\.\-_]?dl)_?\b(?:\])?/i,
         WEBRip: /(?:\[)?\b_?(web[\s\.\-_]?rip)_?\b(?:\])?/i,
         WEB: /(?:\[)?\b_?(web)_?\b(?:\])?/i,
