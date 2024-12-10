@@ -172,11 +172,10 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
     3. Click `Authorise`
 
     4. Sign in with your Google account and allow the app to access your Google Drive.
-    :::tip
-    You may encounter a warning page saying `Google hasn't verified this app`, click on `Advanced` and then `Go to... (unsafe)`.
 
-    This warning is because the app is not verified by Google. This is normal for self-hosted apps.
-    :::
+        > You may encounter a warning page saying `Google hasn't verified this app`, click on `Advanced` and then `Go to... (unsafe)`.
+        >
+        > This warning is because the app is not verified by Google. This is normal for self-hosted apps.
 
     5. You will be redirected back to the OAuth Tool with a success message. Click `Get Addon Code`.
 
@@ -188,7 +187,7 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
 
         ![Cloudflare Workers](/images/cloudflare_finished_worker_script.png)
 
-9. Click `Deploy` in the top right to save your changes and deploy the worker.
+10. Click `Deploy` in the top right to save your changes and deploy the worker.
 
 11. Once deployed, you should see a green success message at the bottom. Click `Visit` next to the deploy button to go to the addon URL.
 
