@@ -18,14 +18,18 @@ const CONFIG = {
         "Unknown",
     ],
     sortBy: ["resolution", "size"],
-    name: "GDrive",
-    prioritiseLanguage: null, // set to null to disable, otherwise valid values can be found in the languageTagsPatterns object in the parseFile function
+    addonName: "GDrive",
+    prioritiseLanguage: null,
+    driveQueryTerms: {
+        episodeFormat: "fullText",
+        movieYear: "name",
+    },
 };
 
 const MANIFEST = {
     id: "stremio.gdrive.worker",
-    version: "1.0.0",
-    name: CONFIG.name,
+    version: "1.1.0",
+    name: CONFIG.addonName,
     description: "Stream your files from Google Drive within Stremio!",
     catalogs: [],
     resources: ["stream"],
@@ -40,76 +44,77 @@ const HEADERS = {
 };
 
 const API_ENDPOINTS = {
-    driveFetchFiles: "https://content.googleapis.com/drive/v3/files",
-    driveStreamFile:
+    DRIVE_FETCH_FILES: "https://content.googleapis.com/drive/v3/files",
+    DRIVE_STREAM_FILE:
         "https://www.googleapis.com/drive/v3/files/{fileId}?alt=media",
-    driveToken: "https://oauth2.googleapis.com/token",
-    cinemeta: "https://v3-cinemeta.strem.io/meta/{type}/{id}.json",
-    imdbSuggest: "https://v3.sg.media-imdb.com/suggestion/a/{id}.json",
+    DRIVE_TOKEN: "https://oauth2.googleapis.com/token",
+    CINEMETA: "https://v3-cinemeta.strem.io/meta/{type}/{id}.json",
+    IMDB_SUGGEST: "https://v3.sg.media-imdb.com/suggestion/a/{id}.json",
 };
 
 const REGEX_PATTERNS = {
     validRequest: /\/stream\/(movie|series)\/([a-zA-Z0-9%:]+)\.json/,
     resolutions: {
-        "2160p": /(?:\[)?\b(_?4k|_?2160p|_?uhd_?)\b(?:\])?/i,
-        "1080p": /(?:\[)?\b(_?1080p|_?fhd_?)\b(?:\])?/i,
-        "720p": /(?:\[)?\b(_?720p|_?hd_?)\b(?:\])?/i,
-        "480p": /(?:\[)?\b(_?480p|_?sd_?)\b(?:\])?/i,
+        "2160p": /(?:\[)?\b_?(4k|2160p|uhd)_?\b(?:\])?/i,
+        "1080p": /(?:\[)?\b_?(1080p|fhd)_?\b(?:\])?/i,
+        "720p": /(?:\[)?\b_?(720p|hd)_?\b(?:\])?/i,
+        "480p": /(?:\[)?\b_?(480p|sd)_?\b(?:\])?/i,
     },
     qualities: {
         "BluRay REMUX":
-            /(?:\[)?\b(_?bluray[\.\-_]?remux|_?bd[\.\-_]?remux_?)\b(?:\])?/i,
-        BDRip: /(?:\[)?\b(_?bd[\.\-_]?rip|_?bluray[\.\-_]?rip|_?br[\.\-_]?rip_?)\b(?:\])?/i,
-        BluRay: /(?:\[)?\b(_?bluray|_?bd_?)\b(?:\])?/i,
-        HDRip: /(?:\[)?\b(_?hd[\.\-_]?rip|_?hdrip_?)\b(?:\])?/i,
-        "WEB-DL": /(?:\[)?\b(_?web[\.\-_]?dl|_?web[\.\-_]?dl_?)\b(?:\])?/i,
-        WEBRip: /(?:\[)?\b(_?web[\.\-_]?rip|_?web[\.\-_]?rip_?)\b(?:\])?/i,
-        WEB: /(?:\[)?\b(_?web_?)\b(?:\])?/i,
-        "CAM/TS":
-            /(?:\[)?\b(_?cam|_?ts|_?telesync|_?hdts|_?hdtc|_?telecine_?)\b(?:\])?/i,
+            /(?:\[)?\b_?(bluray[\s\.\-_]?remux|bd[\s\.\-_]?remux)_?\b(?:\])?/i,
+        BDRip: /(?:\[)?\b_?(bd[\s\.\-_]?rip|bluray[\s\.\-_]?rip|br[\s\.\-_]?rip)_?\b(?:\])?/i,
+        BluRay: /(?:\[)?\b_?(bluray|bd)_?\b(?:\])?/i,
+        HDRip: /(?:\[)?\b_?(hd[\s\.\-_]?rip|hdrip)_?\b(?:\])?/i,
+        "WEB-DL": /(?:\[)?\b_?(web[\s\.\-_]?dl)_?\b(?:\])?/i,
+        WEBRip: /(?:\[)?\b_?(web[\s\.\-_]?rip)_?\b(?:\])?/i,
+        WEB: /(?:\[)?\b_?(web)_?\b(?:\])?/i,
+        "CAM/TS": /(?:\[)?\b_?(cam|ts|tc|telesync|hdts|hdtc|telecine)_?\b(?:\])?/i,
     },
     visualTags: {
-        "HDR10+": /(?:\[)?\b(_?hdr10[\.\-_]?[\+]?|_?hdr10plus_?)\b(?:\])?/i,
-        HDR10: /(?:\[)?\b(_?hdr10_?)\b(?:\])?/i,
-        HDR: /(?:\[)?\b(_?hdr_?)\b(?:\])?/i,
-        DV: /(?:\[)?\b(_?dolby[\.\-_]?vision|_?dolby[\.\-_]?vision[\.\-_]?atmos|_?dv_?)\b(?:\])?/i,
-        IMAX: /(?:\[)?\b(_?imax_?)\b(?:\])?/i,
+        "HDR10+": /(?:\[)?\b_?(hdr10[\s\.\-_]?[+]?|hdr10plus)_?\b(?:\])?/i,
+        HDR10: /(?:\[)?\b_?(hdr10)_?\b(?:\])?/i,
+        HDR: /(?:\[)?\b_?(hdr)_?\b(?:\])?/i,
+        DV: /(?:\[)?\b_?(dolby[\s\.\-_]?vision|dolby[\s\.\-_]?vision[\s\.\-_]?atmos|dv)_?\b(?:\])?/i,
+        IMAX: /(?:\[)?\b_?(imax)_?\b(?:\])?/i,
     },
     audioTags: {
-        Atmos: /(?:\[)?\b(_?atmos_?)\b(?:\])?/i,
+        Atmos: /(?:\[)?\b_?(atmos)_?\b(?:\])?/i,
         "DDP5.1":
-            /(?:\[)?\b(_?ddp5\.1|_?dolby[\.\-_]?digital[\.\-_]?plus[\.\-_]?5\.1_?)\b(?:\])?/i,
-        DDP: /(?:\[)?\b(_?ddp|_?dolby[\.\-_]?digital[\.\-_]?plus_?)\b(?:\])?/i,
-        DD: /(?:\[)?\b(_?dd|_?dolby[\.\-_]?digital_?)\b(?:\])?/i,
-        "DTS-HD": /(?:\[)?\b(_?dts[\.\-_]?hd[\.\-_]?ma_?)\b(?:\])?/i,
-        DTS: /(?:\[)?\b(_?dts_?)\b(?:\])?/i,
-        TrueHD: /(?:\[)?\b(_?truehd_?)\b(?:\])?/i,
-        5.1: /(?:\[)?\b(_?5\.1_?)\b(?:\])?/i,
-        7.1: /(?:\[)?\b(_?7\.1_?)\b(?:\])?/i,
+            /(?:\[)?\b_?(ddp5\.1|dolby[\s\.\-_]?digital[\s\.\-_]?plus[\s\.\-_]?5\.1)_?\b(?:\])?/i,
+        "Dolby Digital Plus": /(?:\[)?\b_?(ddp|dolby[\s\.\-_]?digital[\s\.\-_]?plus)_?\b(?:\])?/i,
+        "Dolby Digital": /(?:\[)?\b_?(dd|dolby[\s\.\-_]?digital)_?\b(?:\])?/i,
+        "DTS HD": /(?:\[)?\b_?(dts[\s\.\-_]?hd[\s\.\-_]?ma)_?\b(?:\])?/i,
+        DTS: /(?:\[)?\b_?(dts)_?\b(?:\])?/i,
+        TrueHD: /(?:\[)?\b_?(truehd)_?\b(?:\])?/i,
+        5.1: /(?:\[)?\b_?(5\.1)_?\b(?:\])?/i,
+        7.1: /(?:\[)?\b_?(7\.1)_?\b(?:\])?/i,
+        AC3: /(?:\[)?\b_?(ac[\s\.\-_]?3)_?\b(?:\])?/i,    
     },
     encodes: {
-        x265: /(?:\[)?\b(_?x265|_?h265|_?hevc|_?h\.265_?)\b(?:\])?/i,
-        x264: /(?:\[)?\b(_?x264|_?h264|_?avc|_?h\.264_?)\b(?:\])?/i,
+        x265: /(?:\[)?\b_?(x265|h265|hevc|h\.265)_?\b(?:\])?/i,
+        x264: /(?:\[)?\b_?(x264|h264|avc|h\.264)_?\b(?:\])?/i,
     },
     languages: {
-        English: /(?:\[)?\b(_?english|_?eng_?)\b(?:\])?/i,
-        Hindi: /(?:\[)?\b(_?hindi|_?hin_?)\b(?:\])?/i,
-        Tamil: /(?:\[)?\b(_?tamil|_?tam_?)\b(?:\])?/i,
-        Telugu: /(?:\[)?\b(_?telugu_?)\b(?:\])?/i,
-        Malayalam: /(?:\[)?\b(_?malayalam_?)\b(?:\])?/i,
-        Kannada: /(?:\[)?\b(_?kannada_?)\b(?:\])?/i,
-        Bengali: /(?:\[)?\b(_?bengali_?)\b(?:\])?/i,
-        Punjabi: /(?:\[)?\b(_?punjabi_?)\b(?:\])?/i,
-        Marathi: /(?:\[)?\b(_?marathi_?)\b(?:\])?/i,
-        French: /(?:\[)?\b(_?french|_?fra_?)\b(?:\])?/i,
-        Spanish: /(?:\[)?\b(_?spanish|_?spa_?)\b(?:\])?/i,
-        German: /(?:\[)?\b(_?german|_?deu_?)\b(?:\])?/i,
-        Italian: /(?:\[)?\b(_?italian|_?ita_?)\b(?:\])?/i,
-        Japanese: /(?:\[)?\b(_?japanese|_?jpn_?)\b(?:\])?/i,
-        Korean: /(?:\[)?\b(_?korean|_?kor_?)\b(?:\])?/i,
-        Chinese: /(?:\[)?\b(_?chinese|_?chn_?)\b(?:\])?/i,
+        English: /(?:\[)?\b_?(english|eng)_?\b(?:\])?/i,
+        Hindi: /(?:\[)?\b_?(hindi|hin)_?\b(?:\])?/i,
+        Tamil: /(?:\[)?\b_?(tamil|tam)_?\b(?:\])?/i,
+        Telugu: /(?:\[)?\b_?(telugu)_?\b(?:\])?/i,
+        Malayalam: /(?:\[)?\b_?(malayalam)_?\b(?:\])?/i,
+        Kannada: /(?:\[)?\b_?(kannada)_?\b(?:\])?/i,
+        Bengali: /(?:\[)?\b_?(bengali)_?\b(?:\])?/i,
+        Punjabi: /(?:\[)?\b_?(punjabi)_?\b(?:\])?/i,
+        Marathi: /(?:\[)?\b_?(marathi)_?\b(?:\])?/i,
+        French: /(?:\[)?\b_?(french|fra)_?\b(?:\])?/i,
+        Spanish: /(?:\[)?\b_?(spanish|spa)_?\b(?:\])?/i,
+        German: /(?:\[)?\b_?(german|deu)_?\b(?:\])?/i,
+        Italian: /(?:\[)?\b_?(italian|ita)_?\b(?:\])?/i,
+        Japanese: /(?:\[)?\b_?(japanese|jpn)_?\b(?:\])?/i,
+        Korean: /(?:\[)?\b_?(korean|kor)_?\b(?:\])?/i,
+        Chinese: /(?:\[)?\b_?(chinese|chn)_?\b(?:\])?/i,
     },
 };
+
 
 const createJsonResponse = (data, status = 200) =>
     new Response(JSON.stringify(data, null, 4), {
@@ -122,7 +127,7 @@ const validateConfig = () => {
         { value: CREDENTIALS.clientId, error: "Missing client_id" },
         { value: CREDENTIALS.clientSecret, error: "Missing client_secret" },
         { value: CREDENTIALS.refreshToken, error: "Missing refresh_token" },
-        { value: CONFIG.name, error: "Missing addon name" },
+        { value: CONFIG.addonName, error: "Missing addon name" },
     ];
 
     for (const { value, error } of requiredFields) {
@@ -160,7 +165,7 @@ const refreshToken = async () => {
     });
 
     try {
-        const response = await fetch(API_ENDPOINTS.driveToken, {
+        const response = await fetch(API_ENDPOINTS.DRIVE_TOKEN, {
             method: "POST",
             body: params,
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -196,19 +201,16 @@ async function handleRequest(request) {
         if (url.pathname === "/")
             return Response.redirect(url.origin + "/manifest.json", 301);
 
-        const streamMatch = url.pathname.match(REGEX_PATTERNS.validRequest);
+        const streamMatch = REGEX_PATTERNS.validRequest.exec(url.pathname);
 
         if (!streamMatch) return new Response("Bad Request", { status: 400 });
 
         if (validateConfig() === false) {
             return createJsonResponse({
                 streams: [
-                    {
-                        name: `[⚠️] ${MANIFEST.name}`,
-                        description:
-                            "Invalid configuration\nEnable and check the logs for more information\nClick for setup instructions",
-                        externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
-                    },
+                    createErrorStream(
+                        "Invalid configuration\nEnable and check the logs for more information\nClick for setup instructions"
+                    ),
                 ],
             });
         }
@@ -233,11 +235,9 @@ async function handleRequest(request) {
         if (streams.length === 0) {
             return createJsonResponse({
                 streams: [
-                    {
-                        name: `[⚠️] ${MANIFEST.name}`,
-                        description: "No streams found\nTry joining some more team drives",
-                        externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
-                    },
+                    createErrorStream(
+                        "No streams found\nTry joining more team drives"
+                    ),
                 ],
             });
         }
@@ -266,7 +266,7 @@ async function getMetadata(type, id) {
     }
 
     try {
-        meta = await getImdbSuggestionMeta(type, id);
+        meta = await getImdbSuggestionMeta(id);
         if (meta) {
             console.log(
                 "Successfully retrieved metadata from IMDb Suggestions:",
@@ -285,14 +285,14 @@ async function getMetadata(type, id) {
 
 async function getCinemetaMeta(type, id) {
     const response = await fetch(
-        API_ENDPOINTS.cinemeta.replace("{type}", type).replace("{id}", id)
+        API_ENDPOINTS.CINEMETA.replace("{type}", type).replace("{id}", id)
     );
     if (!response.ok) {
         let err = await response.text();
         throw new Error("Failed to get metadata, " + err);
     }
     const data = await response.json();
-    if (!data || !data.meta) {
+    if (!data?.meta) {
         throw new Error("Failed to get metadata, the response was empty");
     }
     if (!data.meta.name || !data.meta.year) {
@@ -304,20 +304,22 @@ async function getCinemetaMeta(type, id) {
     };
 }
 
-async function getImdbSuggestionMeta(type, id) {
-    const response = await fetch(API_ENDPOINTS.imdbSuggest.replace("{id}", id));
+async function getImdbSuggestionMeta(id) {
+    const response = await fetch(
+        API_ENDPOINTS.IMDB_SUGGEST.replace("{id}", id)
+    );
     if (!response.ok) {
         let err = await response.text();
         throw new Error("Failed to get metadata, " + err);
     }
     const data = await response.json();
-    if (!data || !data.d) {
+    if (!data?.d) {
         throw new Error("Failed to get metadata, the response was empty");
     }
 
     const item = data.d.find((item) => item.id === id);
 
-    if (!item || !item.l || !item.q) {
+    if (!item?.l || !item?.q) {
         throw new Error("Failed to get metadata, could not find name or year");
     }
 
@@ -331,6 +333,7 @@ async function getStreams(streamRequest) {
     const streams = [];
     const query = await buildSearchQuery(streamRequest);
     console.log("Final Query:", query);
+
     const queryParams = {
         q: query,
         corpora: "allDrives",
@@ -340,114 +343,139 @@ async function getStreams(streamRequest) {
         fields: "files(id,name,size)",
     };
 
-    const fetchUrl = new URL(API_ENDPOINTS.driveFetchFiles);
+    const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
     fetchUrl.search = new URLSearchParams(queryParams).toString();
 
     const token = await refreshToken();
 
     if (!token) {
         return [
-            {
-                name: `[⚠️] ${MANIFEST.name}`,
-                description: "Invalid Credentials\nEnable and check the logs for more information\nClick for setup instructions",
-                externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
-            },
+            createErrorStream(
+                "Invalid Credentials\nEnable and check the logs for more information\nClick for setup instructions"
+            ),
         ];
     }
 
-    const response = await fetch(fetchUrl.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const results = await response.json();
-
-    console.log("Results:", results);
+    const results = await fetchFiles(fetchUrl, token);
 
     if (!results.files || results.files.length === 0) {
         return streams;
     }
 
-    const resolutionOrder = CONFIG.resolutions;
-    const qualityOrder = CONFIG.qualities;
+    const parsedFiles = parseAndFilterFiles(results.files);
 
-    const parsedFiles = results.files
+    sortParsedFiles(parsedFiles);
+
+    parsedFiles.forEach((parsedFile) => {
+        streams.push(createStream(parsedFile, token));
+    });
+
+    return streams;
+}
+
+async function fetchFiles(fetchUrl, token) {
+    const response = await fetch(fetchUrl.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const results = await response.json();
+    console.log("Results:", results);
+    return results;
+}
+
+function parseAndFilterFiles(files) {
+    return files
         .map((file) => {
             const parsedFile = parseFile(file);
             return { ...parsedFile, file };
         })
         .filter(
             (parsedFile) =>
-                resolutionOrder.includes(parsedFile.resolution) &&
-                qualityOrder.includes(parsedFile.quality)
+                CONFIG.resolutions.includes(parsedFile.resolution) &&
+                CONFIG.qualities.includes(parsedFile.quality)
         );
+}
 
-    // Sort based on the sortBy fields in the order given
-    // move any files with the prioritised language to the front
+function sortParsedFiles(parsedFiles) {
     parsedFiles.sort((a, b) => {
-        if (CONFIG.prioritiseLanguage) {
-            const aHasPrioritisedLanguage = a.languageTags.includes(
-                CONFIG.prioritiseLanguage
-            );
-            const bHasPrioritisedLanguage = b.languageTags.includes(
-                CONFIG.prioritiseLanguage
-            );
-            if (aHasPrioritisedLanguage && !bHasPrioritisedLanguage) return -1;
-            if (!aHasPrioritisedLanguage && bHasPrioritisedLanguage) return 1;
-        }
+        const languageComparison = compareLanguages(a, b);
+        if (languageComparison !== 0) return languageComparison;
+
         for (const sortByField of CONFIG.sortBy) {
-            if (sortByField === "resolution") {
-                const resolutionComparison =
-                    resolutionOrder.indexOf(a.resolution) -
-                    resolutionOrder.indexOf(b.resolution);
-                if (resolutionComparison !== 0) {
-                    return resolutionComparison;
-                }
-            } else if (sortByField === "size") {
-                const sizeComparison = b.size - a.size;
-                if (sizeComparison !== 0) {
-                    return sizeComparison;
-                }
-            }
+            const fieldComparison = compareByField(a, b, sortByField);
+            if (fieldComparison !== 0) return fieldComparison;
         }
+
         return 0;
     });
+}
 
-    parsedFiles.forEach((parsedFile) => {
-        let name = `${MANIFEST.name}\n${parsedFile.resolution}`;
-        if (parsedFile.visualTags.length > 0) {
-            name += `\n${parsedFile.visualTags.join(" | ")}`;
-        }
-        let description =
-            parsedFile.name +
-            `\nQuality: ${parsedFile.quality} ${parsedFile.encode}\n💾 ${parsedFile.formattedSize}`;
+function compareLanguages(a, b) {
+    if (CONFIG.prioritiseLanguage) {
+        const aHasPrioritisedLanguage = a.languages.includes(
+            CONFIG.prioritiseLanguage
+        );
+        const bHasPrioritisedLanguage = b.languages.includes(
+            CONFIG.prioritiseLanguage
+        );
+        if (aHasPrioritisedLanguage && !bHasPrioritisedLanguage) return -1;
+        if (!aHasPrioritisedLanguage && bHasPrioritisedLanguage) return 1;
+    }
+    return 0;
+}
 
-        if (parsedFile.audioTags.length > 0) {
-            description += ` 🎵 ${parsedFile.audioTags.join(" | ")}`;
-        }
-        if (!parsedFile.languageTags.includes("Unknown")) {
-            description += `\n🔊 ${parsedFile.languageTags.join(" | ")}`;
-        }
+function compareByField(a, b, field) {
+    if (field === "resolution") {
+        return (
+            CONFIG.resolutions.indexOf(a.resolution) -
+            CONFIG.resolutions.indexOf(b.resolution)
+        );
+    } else if (field === "size") {
+        return b.size - a.size;
+    }
+    return 0;
+}
 
-        streams.push({
-            name: name,
-            description: description,
-            url: API_ENDPOINTS.driveStreamFile.replace(
-                "{fileId}",
-                parsedFile.id
-            ),
-            behaviorHints: {
-                notWebReady: true,
-                proxyHeaders: {
-                    request: {
-                        Accept: "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
+function createStream(parsedFile, token) {
+    let name = `${MANIFEST.name}\n${parsedFile.resolution}`;
+    if (parsedFile.visualTags.length > 0) {
+        name += `\n${parsedFile.visualTags.join(" | ")}`;
+    }
+    let description = `🎥 ${parsedFile.quality} ${parsedFile.encode}`;
+  
+    if (parsedFile.audioTags.length > 0) {
+        description += ` 🎧 ${parsedFile.audioTags.join(" | ")}`;
+    }
+
+    description += `\n📦 ${parsedFile.formattedSize}`
+    if (parsedFile.languages.length !== 0) {
+        description += `\n🔊 ${parsedFile.languages.join(" | ")}`;
+    }
+
+    description += `\n📄 ${parsedFile.name}`
+
+    return {
+        name: name,
+        description: description,
+        url: API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id),
+        behaviorHints: {
+            notWebReady: true,
+            proxyHeaders: {
+                request: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
             },
-        });
-    });
+        },
+    };
+}
 
-    return streams;
+function createErrorStream(description) {
+    return {
+        name: `[⚠️] ${MANIFEST.name}`,
+        description: description,
+        externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
+    };
 }
 
 function parseFile(file) {
@@ -469,7 +497,7 @@ function parseFile(file) {
         Object.entries(REGEX_PATTERNS.encodes).find(([_, pattern]) =>
             pattern.test(file.name)
         )?.[0] || "";
-    let languageTags = Object.entries(REGEX_PATTERNS.languages)
+    let languages = Object.entries(REGEX_PATTERNS.languages)
         .filter(([_, pattern]) => pattern.test(file.name))
         .map(([tag]) => tag);
 
@@ -481,27 +509,26 @@ function parseFile(file) {
         visualTags = visualTags.filter((tag) => tag !== "HDR");
     }
 
-    if (languageTags.length === 0) {
-        languageTags.push("Unknown");
-    }
-
-    const formattedSize =
-        file.size > 1000 * 1000 * 1000
-            ? `${(file.size / (1000 * 1000 * 1000)).toFixed(2)} GB`
-            : `${(file.size / (1000 * 1000)).toFixed(2)} MB`;
-
     return {
         id: file.id,
         name: file.name.trim(),
-        formattedSize: formattedSize,
         size: file.size,
+        formattedSize: formatSize(file.size),
         resolution: resolution,
         quality: quality,
-        audioTags: audioTags,
-        languageTags: languageTags,
+        languages: languages,
         encode: encode,
+        audioTags: audioTags,
         visualTags: visualTags,
     };
+}
+
+function formatSize(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1000;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 async function buildSearchQuery(streamRequest) {
@@ -532,7 +559,10 @@ async function buildSearchQuery(streamRequest) {
     }
 
     if (streamRequest.type === "movie") {
-        return query + ` and name contains '${year}'`;
+        return (
+            query +
+            ` and ${CONFIG.driveQueryTerms.movieYear} contains '${year}'`
+        );
     }
 
     // handle query for shows
@@ -552,7 +582,6 @@ async function buildSearchQuery(streamRequest) {
             [`${season}x${episode}`],
             [`s${season}xe${episode}`],
             [`season ${season}`, `episode ${episode}`],
-            [`season ${season} episode ${episode}`],
             [`s${season}`, `ep${episode}`],
         ];
     };
@@ -578,7 +607,10 @@ async function buildSearchQuery(streamRequest) {
         .map(
             (formatList) =>
                 `(${formatList
-                    .map((format) => `fullText contains '${format}'`)
+                    .map(
+                        (format) =>
+                            `${CONFIG.driveQueryTerms.episodeFormat} contains '${format}'`
+                    )
                     .join(" and ")})`
         )
         .join(" or ")})`;
