@@ -229,6 +229,18 @@ async function handleRequest(request) {
         };
 
         const streams = await getStreams(parsedStreamRequest);
+
+        if (streams.length === 0) {
+            return createJsonResponse({
+                streams: [
+                    {
+                        name: `[⚠️] ${MANIFEST.name}`,
+                        description: "No streams found\nTry joining some more team drives",
+                        externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
+                    },
+                ],
+            });
+        }
         return createJsonResponse({ streams: streams });
     } catch (error) {
         console.error(error);
