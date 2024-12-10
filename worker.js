@@ -417,17 +417,17 @@ async function getStreams(streamRequest) {
         if (parsedFile.visualTags.length > 0) {
             name += `\n${parsedFile.visualTags.join(" | ")}`;
         }
-        let description = `Quality: ${parsedFile.quality} ${
-            parsedFile.encode
-        }\nSize: ${parsedFile.formattedSize}${
-            parsedFile.languageTags.length > 0
-                ? `\nLanguages: ${parsedFile.languageTags.join(", ")}`
-                : ""
-        }\nName: ${parsedFile.name}`;
+        let description =
+            parsedFile.name +
+            `\nQuality: ${parsedFile.quality} ${parsedFile.encode}\n💾 ${parsedFile.formattedSize}`;
 
         if (parsedFile.audioTags.length > 0) {
-            description += `\n${parsedFile.audioTags.join(" | ")}`;
+            description += ` 🎵 ${parsedFile.audioTags.join(" | ")}`;
         }
+        if (!parsedFile.languageTags.includes("Unknown")) {
+            description += `\n🔊 ${parsedFile.languageTags.join(" | ")}`;
+        }
+
         streams.push({
             name: name,
             description: description,
