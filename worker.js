@@ -17,7 +17,7 @@ const CONFIG = {
         "CAM/TS",
         "Unknown",
     ],
-    sortBy: ["resolution", "size"],
+    sortBy: ["resolution", "quality", "size"],
     addonName: "GDrive",
     prioritiseLanguage: null,
     driveQueryTerms: {
@@ -140,7 +140,7 @@ const validateConfig = () => {
     const validValues = {
         resolutions: [...Object.keys(REGEX_PATTERNS.resolutions), "Unknown"],
         qualities: [...Object.keys(REGEX_PATTERNS.qualities), "Unknown"],
-        sortBy: ["resolution", "size"],
+        sortBy: ["resolution", "size", "quality"],
         languages: [...Object.keys(REGEX_PATTERNS.languages), "Unknown"],
     };
 
@@ -437,6 +437,11 @@ function compareByField(a, b, field) {
         );
     } else if (field === "size") {
         return b.size - a.size;
+    } else if (field === "quality") {
+        return (
+            CONFIG.qualities.indexOf(a.quality) -
+            CONFIG.qualities.indexOf(b.quality)
+        );
     }
     return 0;
 }
