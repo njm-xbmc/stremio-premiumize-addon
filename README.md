@@ -15,6 +15,10 @@ You can find a full detailed guide on how to deploy this addon [here](https://gu
 Although you may modify the code as you wish, I have supplied a `CONFIG` object at the top of the code after `CREDENTIALS` that allows you to easily 
 configure some aspects of the addon.
 
+> [!NOTE]
+> 
+> Unless stated otherwise, all values are case sensitive
+
 This table explains the configuration options:
 
 |                 Name                	|      Type      	| Allowed Values                                                                                   	| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          	|
