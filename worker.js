@@ -153,6 +153,11 @@ const validateConfig = () => {
         }
     }
 
+    if (CONFIG.prioritiseLanguage && !validValues.languages.includes(CONFIG.prioritiseLanguage)) {
+        console.error(`Invalid prioritiseLanguage: ${CONFIG.prioritiseLanguage}`);
+        return false;
+    }
+
     return true;
 };
 
