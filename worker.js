@@ -17,7 +17,7 @@ const CONFIG = {
         "CAM/TS",
         "Unknown",
     ],
-    sortBy: ["resolution", "quality", "size"],
+    sortBy: ["resolution", "hdrdv", "quality", "size"],
     addonName: "GDrive",
     prioritiseLanguage: null,
     driveQueryTerms: {
@@ -124,15 +124,15 @@ const createJsonResponse = (data, status = 200) =>
 
 const validateConfig = () => {
     const requiredFields = [
-        { value: CREDENTIALS.clientId, error: "Missing client_id" },
-        { value: CREDENTIALS.clientSecret, error: "Missing client_secret" },
-        { value: CREDENTIALS.refreshToken, error: "Missing refresh_token" },
-        { value: CONFIG.addonName, error: "Missing addon name" },
+        { value: CREDENTIALS.clientId, error: "Missing clientId. Add your client ID to the credentials object" },
+        { value: CREDENTIALS.clientSecret, error: "Missing clientSecret! Add your client secret to the credentials object" },
+        { value: CREDENTIALS.refreshToken, error: "Missing refreshToken! Add your refresh token to the credentials object" },
+        { value: CONFIG.addonName, error: "Missing addonName! Provide it in the config object" },
     ];
 
     for (const { value, error } of requiredFields) {
         if (!value) {
-            console.error(error);
+            console.error({ message: error, yourValue: value });
             return false;
         }
     }
@@ -140,21 +140,32 @@ const validateConfig = () => {
     const validValues = {
         resolutions: [...Object.keys(REGEX_PATTERNS.resolutions), "Unknown"],
         qualities: [...Object.keys(REGEX_PATTERNS.qualities), "Unknown"],
-        sortBy: ["resolution", "size", "quality"],
+        sortBy: ["resolution", "size", "quality", "hdrdv"],
         languages: [...Object.keys(REGEX_PATTERNS.languages), "Unknown"],
     };
 
+    const keyToSingular = {
+        resolutions: "resolution",
+        qualities: "quality",
+        sortBy: "sort criterion",
+    };
+
     for (const key of ["resolutions", "qualities", "sortBy"]) {
+        const configValue = CONFIG[key];
+        if (!Array.isArray(configValue)) {
+            console.error(`Invalid ${key}: ${configValue} is not an array`);
+            return false;
+        }
         for (const value of CONFIG[key]) {
             if (!validValues[key].includes(value)) {
-                console.error(`Invalid ${key.slice(0, -1)}: ${value}`);
+                console.error({message: `Invalid ${keyToSingular[key]}: ${value}`, validValues: validValues[key]});
                 return false;
             }
         }
     }
 
     if (CONFIG.prioritiseLanguage && !validValues.languages.includes(CONFIG.prioritiseLanguage)) {
-        console.error(`Invalid prioritiseLanguage: ${CONFIG.prioritiseLanguage}`);
+        console.error({message: `Invalid prioritised language: ${CONFIG.prioritiseLanguage}`, validValues: validValues.languages});
         return false;
     }
 
@@ -177,14 +188,14 @@ const refreshToken = async () => {
         });
 
         if (!response.ok) {
-            let err = await response.text();
-            throw new Error("Failed to refresh token, " + err);
+            let err = await response.json()
+            throw new Error(JSON.stringify(err));
         }
 
         const { access_token } = await response.json();
         return access_token;
     } catch (error) {
-        console.error("Error refreshing token:", error);
+        console.error({ message: "Failed to refresh token", error: JSON.parse(error.message) });
         return undefined;
     }
 };
@@ -248,7 +259,7 @@ async function handleRequest(request) {
         }
         return createJsonResponse({ streams: streams });
     } catch (error) {
-        console.error(error);
+        console.error({ message: "An unexpected error occurred", error: error.toString() });
         return new Response("Internal Server Error", { status: 500 });
     }
 }
@@ -259,32 +270,24 @@ async function getMetadata(type, id) {
     try {
         meta = await getCinemetaMeta(type, id);
         if (meta) {
-            console.log(
-                "Successfully retrieved metadata from Cinemeta:",
-                meta.name,
-                meta.year
-            );
+            console.log({message: "Successfully retrieved metadata from Cinemeta", meta});
             return meta;
         }
     } catch (error) {
-        console.error("Error fetching metadata from Cinemeta:", error);
+        console.error({ message: "Error fetching metadata from Cinemeta", error: error.toString() });
     }
 
     try {
         meta = await getImdbSuggestionMeta(id);
         if (meta) {
-            console.log(
-                "Successfully retrieved metadata from IMDb Suggestions:",
-                meta.name,
-                meta.year
-            );
+            console.log({message: "Successfully retrieved metadata from IMDb Suggestions", meta});
             return meta;
         }
     } catch (error) {
-        console.error("Error fetching metadata from IMDb Suggestions:", error);
+        console.error({ message: "Error fetching metadata from IMDb Suggestions", error: error.toString() });
     }
 
-    console.error("Failed to get metadata");
+    console.error({ message: "Failed to get metadata from Cinemeta or IMDb Suggestions, returning null"});
     return null;
 }
 
@@ -294,14 +297,14 @@ async function getCinemetaMeta(type, id) {
     );
     if (!response.ok) {
         let err = await response.text();
-        throw new Error("Failed to get metadata, " + err);
+        throw new Error(err);
     }
     const data = await response.json();
     if (!data?.meta) {
-        throw new Error("Failed to get metadata, the response was empty");
+        throw new Error("Meta object not found in response");
     }
     if (!data.meta.name || !data.meta.year) {
-        throw new Error("Failed to get metadata, could not find name or year");
+        throw new Error("Either name or year not found in meta object");
     }
     return {
         name: data.meta.name,
@@ -315,17 +318,20 @@ async function getImdbSuggestionMeta(id) {
     );
     if (!response.ok) {
         let err = await response.text();
-        throw new Error("Failed to get metadata, " + err);
+        throw new Error(err);
     }
     const data = await response.json();
     if (!data?.d) {
-        throw new Error("Failed to get metadata, the response was empty");
+        throw new Error("No suggestions in d object");
     }
 
     const item = data.d.find((item) => item.id === id);
+    if (!item) {
+        throw new Error("No matching item found with the given id");
+    }
 
     if (!item?.l || !item?.q) {
-        throw new Error("Failed to get metadata, could not find name or year");
+        throw new Error("Missing name or year");
     }
 
     return {
@@ -337,7 +343,7 @@ async function getImdbSuggestionMeta(id) {
 async function getStreams(streamRequest) {
     const streams = [];
     const query = await buildSearchQuery(streamRequest);
-    console.log("Final Query:", query);
+    console.log({ message: "Built search query", query, config: CONFIG });
 
     const queryParams = {
         q: query,
@@ -363,13 +369,31 @@ async function getStreams(streamRequest) {
 
     const results = await fetchFiles(fetchUrl, token);
 
-    if (!results.files || results.files.length === 0) {
+    if (results?.incompleteSearch) {
+        console.warn({ message: "The search was incomplete", results });
+    }
+
+    if (!results?.files || results.files.length === 0) {
+        console.log({ message: "No files found"});
         return streams;
     }
 
+    console.log({ message: "Fetched files from Google Drive", files: results.files });
+
     const parsedFiles = parseAndFilterFiles(results.files);
+    
+    console.log(results.files.length - parsedFiles.length === 0 ? {message: `${parsedFiles.length} files successfully parsed`, files: parsedFiles} : { 
+        message: `${ results.files.length - parsedFiles.length} files were filtered out after parsing`,
+        filesFiltered: results.files.filter((file) => !parsedFiles.some((parsedFile) => parsedFile.id === file.id)),
+        config: CONFIG
+    });
 
     sortParsedFiles(parsedFiles);
+
+    console.log({
+        message: "All files parsed, filtered, and sorted successfully",
+        files: parsedFiles,
+    })
 
     parsedFiles.forEach((parsedFile) => {
         streams.push(createStream(parsedFile, token));
@@ -379,21 +403,27 @@ async function getStreams(streamRequest) {
 }
 
 async function fetchFiles(fetchUrl, token) {
-    const response = await fetch(fetchUrl.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+        const response = await fetch(fetchUrl.toString(), {
+            headers: { Authorization: `Bearer ${token}` },
+        });
 
-    const results = await response.json();
-    console.log("Results:", results);
-    return results;
+        if (!response.ok) {
+            let err = await response.text();
+            throw new Error(err);
+        }
+    
+        const results = await response.json();
+        return results;
+    } catch (error) {
+        console.error({ message: "Could not fetch files from Google Drive", error: error.toString() });
+        return null;
+    }
 }
 
 function parseAndFilterFiles(files) {
     return files
-        .map((file) => {
-            const parsedFile = parseFile(file);
-            return { ...parsedFile, file };
-        })
+        .map((file) => parseFile(file))
         .filter(
             (parsedFile) =>
                 CONFIG.resolutions.includes(parsedFile.resolution) &&
@@ -442,6 +472,16 @@ function compareByField(a, b, field) {
             CONFIG.qualities.indexOf(a.quality) -
             CONFIG.qualities.indexOf(b.quality)
         );
+    } else if (field === "hdrdv") {
+        const aHasHDRDV = a.visualTags.some((tag) =>
+            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
+        );
+        const bHasHDRDV = b.visualTags.some((tag) =>
+            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
+        );
+        if (aHasHDRDV && !bHasHDRDV) return -1;
+        if (!aHasHDRDV && bHasHDRDV) return 1;
+
     }
     return 0;
 }
