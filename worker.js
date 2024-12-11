@@ -69,7 +69,8 @@ const REGEX_PATTERNS = {
         "WEB-DL": /(?:\[)?\b_?(web[\s\.\-_]?dl)_?\b(?:\])?/i,
         WEBRip: /(?:\[)?\b_?(web[\s\.\-_]?rip)_?\b(?:\])?/i,
         WEB: /(?:\[)?\b_?(web)_?\b(?:\])?/i,
-        "CAM/TS": /(?:\[)?\b_?(cam|ts|tc|telesync|hdts|hdtc|telecine)_?\b(?:\])?/i,
+        "CAM/TS":
+            /(?:\[)?\b_?(cam|ts|tc|telesync|hdts|hdtc|telecine)_?\b(?:\])?/i,
     },
     visualTags: {
         "HDR10+": /(?:\[)?\b_?(hdr10[\s\.\-_]?[+]?|hdr10plus)_?\b(?:\])?/i,
@@ -82,7 +83,8 @@ const REGEX_PATTERNS = {
         Atmos: /(?:\[)?\b_?(atmos)_?\b(?:\])?/i,
         "DDP5.1":
             /(?:\[)?\b_?(ddp5\.1|dolby[\s\.\-_]?digital[\s\.\-_]?plus[\s\.\-_]?5\.1)_?\b(?:\])?/i,
-        "Dolby Digital Plus": /(?:\[)?\b_?(ddp|dolby[\s\.\-_]?digital[\s\.\-_]?plus)_?\b(?:\])?/i,
+        "Dolby Digital Plus":
+            /(?:\[)?\b_?(ddp|dolby[\s\.\-_]?digital[\s\.\-_]?plus)_?\b(?:\])?/i,
         "Dolby Digital": /(?:\[)?\b_?(dd|dolby[\s\.\-_]?digital)_?\b(?:\])?/i,
         "DTS HD": /(?:\[)?\b_?(dts[\s\.\-_]?hd[\s\.\-_]?ma)_?\b(?:\])?/i,
         DTS: /(?:\[)?\b_?(dts)_?\b(?:\])?/i,
@@ -166,7 +168,6 @@ function compareByField(a, b, field) {
         );
         if (aHasHDRDV && !bHasHDRDV) return -1;
         if (!aHasHDRDV && bHasHDRDV) return 1;
-
     }
     return 0;
 }
@@ -182,12 +183,12 @@ function createStream(parsedFile, accessToken) {
         description += ` 🎧 ${parsedFile.audioTags.join(" | ")}`;
     }
 
-    description += `\n📦 ${parsedFile.formattedSize}`
+    description += `\n📦 ${parsedFile.formattedSize}`;
     if (parsedFile.languages.length !== 0) {
         description += `\n🔊 ${parsedFile.languages.join(" | ")}`;
     }
 
-    description += `\n📄 ${parsedFile.name}`
+    description += `\n📄 ${parsedFile.name}`;
 
     return {
         name: name,
@@ -284,10 +285,22 @@ function parseFile(file) {
 
 function isConfigValid() {
     const requiredFields = [
-        { value: CREDENTIALS.clientId, error: "Missing clientId. Add your client ID to the credentials object" },
-        { value: CREDENTIALS.clientSecret, error: "Missing clientSecret! Add your client secret to the credentials object" },
-        { value: CREDENTIALS.refreshToken, error: "Missing refreshToken! Add your refresh token to the credentials object" },
-        { value: CONFIG.addonName, error: "Missing addonName! Provide it in the config object" },
+        {
+            value: CREDENTIALS.clientId,
+            error: "Missing clientId. Add your client ID to the credentials object",
+        },
+        {
+            value: CREDENTIALS.clientSecret,
+            error: "Missing clientSecret! Add your client secret to the credentials object",
+        },
+        {
+            value: CREDENTIALS.refreshToken,
+            error: "Missing refreshToken! Add your refresh token to the credentials object",
+        },
+        {
+            value: CONFIG.addonName,
+            error: "Missing addonName! Provide it in the config object",
+        },
     ];
 
     for (const { value, error } of requiredFields) {
@@ -318,19 +331,28 @@ function isConfigValid() {
         }
         for (const value of CONFIG[key]) {
             if (!validValues[key].includes(value)) {
-                console.error({message: `Invalid ${keyToSingular[key]}: ${value}`, validValues: validValues[key]});
+                console.error({
+                    message: `Invalid ${keyToSingular[key]}: ${value}`,
+                    validValues: validValues[key],
+                });
                 return false;
             }
         }
     }
 
-    if (CONFIG.prioritiseLanguage && !validValues.languages.includes(CONFIG.prioritiseLanguage)) {
-        console.error({message: `Invalid prioritised language: ${CONFIG.prioritiseLanguage}`, validValues: validValues.languages});
+    if (
+        CONFIG.prioritiseLanguage &&
+        !validValues.languages.includes(CONFIG.prioritiseLanguage)
+    ) {
+        console.error({
+            message: `Invalid prioritised language: ${CONFIG.prioritiseLanguage}`,
+            validValues: validValues.languages,
+        });
         return false;
     }
 
     return true;
-};
+}
 
 async function getMetadata(type, id) {
     let meta;
@@ -338,24 +360,40 @@ async function getMetadata(type, id) {
     try {
         meta = await getCinemetaMeta(type, id);
         if (meta) {
-            console.log({message: "Successfully retrieved metadata from Cinemeta", meta});
+            console.log({
+                message: "Successfully retrieved metadata from Cinemeta",
+                meta,
+            });
             return meta;
         }
     } catch (error) {
-        console.error({ message: "Error fetching metadata from Cinemeta", error: error.toString() });
+        console.error({
+            message: "Error fetching metadata from Cinemeta",
+            error: error.toString(),
+        });
     }
 
     try {
         meta = await getImdbSuggestionMeta(id);
         if (meta) {
-            console.log({message: "Successfully retrieved metadata from IMDb Suggestions", meta});
+            console.log({
+                message:
+                    "Successfully retrieved metadata from IMDb Suggestions",
+                meta,
+            });
             return meta;
         }
     } catch (error) {
-        console.error({ message: "Error fetching metadata from IMDb Suggestions", error: error.toString() });
+        console.error({
+            message: "Error fetching metadata from IMDb Suggestions",
+            error: error.toString(),
+        });
     }
 
-    console.error({ message: "Failed to get metadata from Cinemeta or IMDb Suggestions, returning null"});
+    console.error({
+        message:
+            "Failed to get metadata from Cinemeta or IMDb Suggestions, returning null",
+    });
     return null;
 }
 
@@ -424,17 +462,20 @@ async function getAccessToken() {
         });
 
         if (!response.ok) {
-            let err = await response.json()
+            let err = await response.json();
             throw new Error(JSON.stringify(err));
         }
 
         const { access_token } = await response.json();
         return access_token;
     } catch (error) {
-        console.error({ message: "Failed to refresh token", error: JSON.parse(error.message) });
+        console.error({
+            message: "Failed to refresh token",
+            error: JSON.parse(error.message),
+        });
         return undefined;
     }
-};
+}
 
 async function fetchFiles(fetchUrl, accessToken) {
     try {
@@ -450,7 +491,10 @@ async function fetchFiles(fetchUrl, accessToken) {
         const results = await response.json();
         return results;
     } catch (error) {
-        console.error({ message: "Could not fetch files from Google Drive", error: error.toString() });
+        console.error({
+            message: "Could not fetch files from Google Drive",
+            error: error.toString(),
+        });
         return null;
     }
 }
@@ -596,7 +640,10 @@ async function handleRequest(request) {
         }
         return createJsonResponse({ streams: streams });
     } catch (error) {
-        console.error({ message: "An unexpected error occurred", error: error.toString() });
+        console.error({
+            message: "An unexpected error occurred",
+            error: error.toString(),
+        });
         return new Response("Internal Server Error", { status: 500 });
     }
 }
@@ -635,26 +682,43 @@ async function getStreams(streamRequest) {
     }
 
     if (!results?.files || results.files.length === 0) {
-        console.log({ message: "No files found"});
+        console.log({ message: "No files found" });
         return streams;
     }
 
-    console.log({ message: "Fetched files from Google Drive", files: results.files });
+    console.log({
+        message: "Fetched files from Google Drive",
+        files: results.files,
+    });
 
     const parsedFiles = parseAndFilterFiles(results.files);
 
-    console.log(results.files.length - parsedFiles.length === 0 ? {message: `${parsedFiles.length} files successfully parsed`, files: parsedFiles} : {
-        message: `${ results.files.length - parsedFiles.length} files were filtered out after parsing`,
-        filesFiltered: results.files.filter((file) => !parsedFiles.some((parsedFile) => parsedFile.id === file.id)),
-        config: CONFIG
-    });
+    console.log(
+        results.files.length - parsedFiles.length === 0
+            ? {
+                  message: `${parsedFiles.length} files successfully parsed`,
+                  files: parsedFiles,
+              }
+            : {
+                  message: `${
+                      results.files.length - parsedFiles.length
+                  } files were filtered out after parsing`,
+                  filesFiltered: results.files.filter(
+                      (file) =>
+                          !parsedFiles.some(
+                              (parsedFile) => parsedFile.id === file.id
+                          )
+                  ),
+                  config: CONFIG,
+              }
+    );
 
     sortParsedFiles(parsedFiles);
 
     console.log({
         message: "All files parsed, filtered, and sorted successfully",
         files: parsedFiles,
-    })
+    });
 
     parsedFiles.forEach((parsedFile) => {
         streams.push(createStream(parsedFile, accessToken));
