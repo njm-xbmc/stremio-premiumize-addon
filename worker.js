@@ -89,7 +89,7 @@ const REGEX_PATTERNS = {
         TrueHD: /(?:\[)?\b_?(truehd)_?\b(?:\])?/i,
         5.1: /(?:\[)?\b_?(5\.1)_?\b(?:\])?/i,
         7.1: /(?:\[)?\b_?(7\.1)_?\b(?:\])?/i,
-        AC3: /(?:\[)?\b_?(ac[\s\.\-_]?3)_?\b(?:\])?/i,    
+        AC3: /(?:\[)?\b_?(ac[\s\.\-_]?3)_?\b(?:\])?/i,
     },
     encodes: {
         x265: /(?:\[)?\b_?(x265|h265|hevc|h\.265)_?\b(?:\])?/i,
@@ -115,14 +115,174 @@ const REGEX_PATTERNS = {
     },
 };
 
+function formatSize(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1000;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
 
-const createJsonResponse = (data, status = 200) =>
-    new Response(JSON.stringify(data, null, 4), {
+function createJsonResponse(data, status = 200) {
+    return new Response(JSON.stringify(data, null, 4), {
         headers: HEADERS,
         status: status,
     });
+}
 
-const validateConfig = () => {
+function compareLanguages(a, b) {
+    if (CONFIG.prioritiseLanguage) {
+        const aHasPrioritisedLanguage = a.languages.includes(
+            CONFIG.prioritiseLanguage
+        );
+        const bHasPrioritisedLanguage = b.languages.includes(
+            CONFIG.prioritiseLanguage
+        );
+        if (aHasPrioritisedLanguage && !bHasPrioritisedLanguage) return -1;
+        if (!aHasPrioritisedLanguage && bHasPrioritisedLanguage) return 1;
+    }
+    return 0;
+}
+
+function compareByField(a, b, field) {
+    if (field === "resolution") {
+        return (
+            CONFIG.resolutions.indexOf(a.resolution) -
+            CONFIG.resolutions.indexOf(b.resolution)
+        );
+    } else if (field === "size") {
+        return b.size - a.size;
+    } else if (field === "quality") {
+        return (
+            CONFIG.qualities.indexOf(a.quality) -
+            CONFIG.qualities.indexOf(b.quality)
+        );
+    } else if (field === "hdrdv") {
+        const aHasHDRDV = a.visualTags.some((tag) =>
+            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
+        );
+        const bHasHDRDV = b.visualTags.some((tag) =>
+            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
+        );
+        if (aHasHDRDV && !bHasHDRDV) return -1;
+        if (!aHasHDRDV && bHasHDRDV) return 1;
+
+    }
+    return 0;
+}
+
+function createStream(parsedFile, accessToken) {
+    let name = `${MANIFEST.name}\n${parsedFile.resolution}`;
+    if (parsedFile.visualTags.length > 0) {
+        name += `\n${parsedFile.visualTags.join(" | ")}`;
+    }
+    let description = `🎥 ${parsedFile.quality} ${parsedFile.encode}`;
+
+    if (parsedFile.audioTags.length > 0) {
+        description += ` 🎧 ${parsedFile.audioTags.join(" | ")}`;
+    }
+
+    description += `\n📦 ${parsedFile.formattedSize}`
+    if (parsedFile.languages.length !== 0) {
+        description += `\n🔊 ${parsedFile.languages.join(" | ")}`;
+    }
+
+    description += `\n📄 ${parsedFile.name}`
+
+    return {
+        name: name,
+        description: description,
+        url: API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id),
+        behaviorHints: {
+            notWebReady: true,
+            proxyHeaders: {
+                request: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            },
+        },
+    };
+}
+
+function createErrorStream(description) {
+    return {
+        name: `[⚠️] ${MANIFEST.name}`,
+        description: description,
+        externalUrl: "https://github.com/Viren070/stremio-gdrive-addon",
+    };
+}
+
+function sortParsedFiles(parsedFiles) {
+    parsedFiles.sort((a, b) => {
+        const languageComparison = compareLanguages(a, b);
+        if (languageComparison !== 0) return languageComparison;
+
+        for (const sortByField of CONFIG.sortBy) {
+            const fieldComparison = compareByField(a, b, sortByField);
+            if (fieldComparison !== 0) return fieldComparison;
+        }
+
+        return 0;
+    });
+}
+
+function parseAndFilterFiles(files) {
+    return files
+        .map((file) => parseFile(file))
+        .filter(
+            (parsedFile) =>
+                CONFIG.resolutions.includes(parsedFile.resolution) &&
+                CONFIG.qualities.includes(parsedFile.quality)
+        );
+}
+
+function parseFile(file) {
+    let resolution =
+        Object.entries(REGEX_PATTERNS.resolutions).find(([_, pattern]) =>
+            pattern.test(file.name)
+        )?.[0] || "Unknown";
+    let quality =
+        Object.entries(REGEX_PATTERNS.qualities).find(([_, pattern]) =>
+            pattern.test(file.name)
+        )?.[0] || "Unknown";
+    let visualTags = Object.entries(REGEX_PATTERNS.visualTags)
+        .filter(([_, pattern]) => pattern.test(file.name))
+        .map(([tag]) => tag);
+    let audioTags = Object.entries(REGEX_PATTERNS.audioTags)
+        .filter(([_, pattern]) => pattern.test(file.name))
+        .map(([tag]) => tag);
+    let encode =
+        Object.entries(REGEX_PATTERNS.encodes).find(([_, pattern]) =>
+            pattern.test(file.name)
+        )?.[0] || "";
+    let languages = Object.entries(REGEX_PATTERNS.languages)
+        .filter(([_, pattern]) => pattern.test(file.name))
+        .map(([tag]) => tag);
+
+    if (visualTags.includes("HDR10+")) {
+        visualTags = visualTags.filter(
+            (tag) => tag !== "HDR" && tag !== "HDR10"
+        );
+    } else if (visualTags.includes("HDR10")) {
+        visualTags = visualTags.filter((tag) => tag !== "HDR");
+    }
+
+    return {
+        id: file.id,
+        name: file.name.trim(),
+        size: file.size,
+        formattedSize: formatSize(file.size),
+        resolution: resolution,
+        quality: quality,
+        languages: languages,
+        encode: encode,
+        audioTags: audioTags,
+        visualTags: visualTags,
+    };
+}
+
+function isConfigValid() {
     const requiredFields = [
         { value: CREDENTIALS.clientId, error: "Missing clientId. Add your client ID to the credentials object" },
         { value: CREDENTIALS.clientSecret, error: "Missing clientSecret! Add your client secret to the credentials object" },
@@ -171,98 +331,6 @@ const validateConfig = () => {
 
     return true;
 };
-
-const refreshToken = async () => {
-    const params = new URLSearchParams({
-        client_id: CREDENTIALS.clientId,
-        client_secret: CREDENTIALS.clientSecret,
-        refresh_token: CREDENTIALS.refreshToken,
-        grant_type: "refresh_token",
-    });
-
-    try {
-        const response = await fetch(API_ENDPOINTS.DRIVE_TOKEN, {
-            method: "POST",
-            body: params,
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        });
-
-        if (!response.ok) {
-            let err = await response.json()
-            throw new Error(JSON.stringify(err));
-        }
-
-        const { access_token } = await response.json();
-        return access_token;
-    } catch (error) {
-        console.error({ message: "Failed to refresh token", error: JSON.parse(error.message) });
-        return undefined;
-    }
-};
-
-export default {
-    async fetch(request) {
-        return handleRequest(request);
-    },
-};
-async function handleRequest(request) {
-    try {
-        const url = new URL(
-            decodeURIComponent(request.url).replace("%3A", ":")
-        );
-
-        if (url.pathname === "/manifest.json")
-            return createJsonResponse(MANIFEST);
-
-        if (url.pathname === "/")
-            return Response.redirect(url.origin + "/manifest.json", 301);
-
-        const streamMatch = REGEX_PATTERNS.validRequest.exec(url.pathname);
-
-        if (!streamMatch) return new Response("Bad Request", { status: 400 });
-
-        if (validateConfig() === false) {
-            return createJsonResponse({
-                streams: [
-                    createErrorStream(
-                        "Invalid configuration\nEnable and check the logs for more information\nClick for setup instructions"
-                    ),
-                ],
-            });
-        }
-
-        const type = streamMatch[1];
-        const [imdbId, season, episode] = streamMatch[2].split(":");
-
-        const metadata = await getMetadata(type, imdbId);
-
-        if (!metadata) return createJsonResponse({ streams: [] });
-
-        const parsedStreamRequest = {
-            type: type,
-            id: imdbId,
-            season: parseInt(season) || undefined,
-            episode: parseInt(episode) || undefined,
-            metadata: metadata,
-        };
-
-        const streams = await getStreams(parsedStreamRequest);
-
-        if (streams.length === 0) {
-            return createJsonResponse({
-                streams: [
-                    createErrorStream(
-                        "No streams found\nTry joining more team drives"
-                    ),
-                ],
-            });
-        }
-        return createJsonResponse({ streams: streams });
-    } catch (error) {
-        console.error({ message: "An unexpected error occurred", error: error.toString() });
-        return new Response("Internal Server Error", { status: 500 });
-    }
-}
 
 async function getMetadata(type, id) {
     let meta;
@@ -340,245 +408,51 @@ async function getImdbSuggestionMeta(id) {
     };
 }
 
-async function getStreams(streamRequest) {
-    const streams = [];
-    const query = await buildSearchQuery(streamRequest);
-    console.log({ message: "Built search query", query, config: CONFIG });
-
-    const queryParams = {
-        q: query,
-        corpora: "allDrives",
-        includeItemsFromAllDrives: "true",
-        supportsAllDrives: "true",
-        pageSize: "1000",
-        fields: "files(id,name,size)",
-    };
-
-    const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
-    fetchUrl.search = new URLSearchParams(queryParams).toString();
-
-    const token = await refreshToken();
-
-    if (!token) {
-        return [
-            createErrorStream(
-                "Invalid Credentials\nEnable and check the logs for more information\nClick for setup instructions"
-            ),
-        ];
-    }
-
-    const results = await fetchFiles(fetchUrl, token);
-
-    if (results?.incompleteSearch) {
-        console.warn({ message: "The search was incomplete", results });
-    }
-
-    if (!results?.files || results.files.length === 0) {
-        console.log({ message: "No files found"});
-        return streams;
-    }
-
-    console.log({ message: "Fetched files from Google Drive", files: results.files });
-
-    const parsedFiles = parseAndFilterFiles(results.files);
-    
-    console.log(results.files.length - parsedFiles.length === 0 ? {message: `${parsedFiles.length} files successfully parsed`, files: parsedFiles} : { 
-        message: `${ results.files.length - parsedFiles.length} files were filtered out after parsing`,
-        filesFiltered: results.files.filter((file) => !parsedFiles.some((parsedFile) => parsedFile.id === file.id)),
-        config: CONFIG
+async function getAccessToken() {
+    const params = new URLSearchParams({
+        client_id: CREDENTIALS.clientId,
+        client_secret: CREDENTIALS.clientSecret,
+        refresh_token: CREDENTIALS.refreshToken,
+        grant_type: "refresh_token",
     });
 
-    sortParsedFiles(parsedFiles);
+    try {
+        const response = await fetch(API_ENDPOINTS.DRIVE_TOKEN, {
+            method: "POST",
+            body: params,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
 
-    console.log({
-        message: "All files parsed, filtered, and sorted successfully",
-        files: parsedFiles,
-    })
+        if (!response.ok) {
+            let err = await response.json()
+            throw new Error(JSON.stringify(err));
+        }
 
-    parsedFiles.forEach((parsedFile) => {
-        streams.push(createStream(parsedFile, token));
-    });
+        const { access_token } = await response.json();
+        return access_token;
+    } catch (error) {
+        console.error({ message: "Failed to refresh token", error: JSON.parse(error.message) });
+        return undefined;
+    }
+};
 
-    return streams;
-}
-
-async function fetchFiles(fetchUrl, token) {
+async function fetchFiles(fetchUrl, accessToken) {
     try {
         const response = await fetch(fetchUrl.toString(), {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (!response.ok) {
             let err = await response.text();
             throw new Error(err);
         }
-    
+
         const results = await response.json();
         return results;
     } catch (error) {
         console.error({ message: "Could not fetch files from Google Drive", error: error.toString() });
         return null;
     }
-}
-
-function parseAndFilterFiles(files) {
-    return files
-        .map((file) => parseFile(file))
-        .filter(
-            (parsedFile) =>
-                CONFIG.resolutions.includes(parsedFile.resolution) &&
-                CONFIG.qualities.includes(parsedFile.quality)
-        );
-}
-
-function sortParsedFiles(parsedFiles) {
-    parsedFiles.sort((a, b) => {
-        const languageComparison = compareLanguages(a, b);
-        if (languageComparison !== 0) return languageComparison;
-
-        for (const sortByField of CONFIG.sortBy) {
-            const fieldComparison = compareByField(a, b, sortByField);
-            if (fieldComparison !== 0) return fieldComparison;
-        }
-
-        return 0;
-    });
-}
-
-function compareLanguages(a, b) {
-    if (CONFIG.prioritiseLanguage) {
-        const aHasPrioritisedLanguage = a.languages.includes(
-            CONFIG.prioritiseLanguage
-        );
-        const bHasPrioritisedLanguage = b.languages.includes(
-            CONFIG.prioritiseLanguage
-        );
-        if (aHasPrioritisedLanguage && !bHasPrioritisedLanguage) return -1;
-        if (!aHasPrioritisedLanguage && bHasPrioritisedLanguage) return 1;
-    }
-    return 0;
-}
-
-function compareByField(a, b, field) {
-    if (field === "resolution") {
-        return (
-            CONFIG.resolutions.indexOf(a.resolution) -
-            CONFIG.resolutions.indexOf(b.resolution)
-        );
-    } else if (field === "size") {
-        return b.size - a.size;
-    } else if (field === "quality") {
-        return (
-            CONFIG.qualities.indexOf(a.quality) -
-            CONFIG.qualities.indexOf(b.quality)
-        );
-    } else if (field === "hdrdv") {
-        const aHasHDRDV = a.visualTags.some((tag) =>
-            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
-        );
-        const bHasHDRDV = b.visualTags.some((tag) =>
-            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
-        );
-        if (aHasHDRDV && !bHasHDRDV) return -1;
-        if (!aHasHDRDV && bHasHDRDV) return 1;
-
-    }
-    return 0;
-}
-
-function createStream(parsedFile, token) {
-    let name = `${MANIFEST.name}\n${parsedFile.resolution}`;
-    if (parsedFile.visualTags.length > 0) {
-        name += `\n${parsedFile.visualTags.join(" | ")}`;
-    }
-    let description = `🎥 ${parsedFile.quality} ${parsedFile.encode}`;
-  
-    if (parsedFile.audioTags.length > 0) {
-        description += ` 🎧 ${parsedFile.audioTags.join(" | ")}`;
-    }
-
-    description += `\n📦 ${parsedFile.formattedSize}`
-    if (parsedFile.languages.length !== 0) {
-        description += `\n🔊 ${parsedFile.languages.join(" | ")}`;
-    }
-
-    description += `\n📄 ${parsedFile.name}`
-
-    return {
-        name: name,
-        description: description,
-        url: API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id),
-        behaviorHints: {
-            notWebReady: true,
-            proxyHeaders: {
-                request: {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-            },
-        },
-    };
-}
-
-function createErrorStream(description) {
-    return {
-        name: `[⚠️] ${MANIFEST.name}`,
-        description: description,
-        externalUrl: "https://github.com/Viren070/stremio-gdrive-addon",
-    };
-}
-
-function parseFile(file) {
-    let resolution =
-        Object.entries(REGEX_PATTERNS.resolutions).find(([_, pattern]) =>
-            pattern.test(file.name)
-        )?.[0] || "Unknown";
-    let quality =
-        Object.entries(REGEX_PATTERNS.qualities).find(([_, pattern]) =>
-            pattern.test(file.name)
-        )?.[0] || "Unknown";
-    let visualTags = Object.entries(REGEX_PATTERNS.visualTags)
-        .filter(([_, pattern]) => pattern.test(file.name))
-        .map(([tag]) => tag);
-    let audioTags = Object.entries(REGEX_PATTERNS.audioTags)
-        .filter(([_, pattern]) => pattern.test(file.name))
-        .map(([tag]) => tag);
-    let encode =
-        Object.entries(REGEX_PATTERNS.encodes).find(([_, pattern]) =>
-            pattern.test(file.name)
-        )?.[0] || "";
-    let languages = Object.entries(REGEX_PATTERNS.languages)
-        .filter(([_, pattern]) => pattern.test(file.name))
-        .map(([tag]) => tag);
-
-    if (visualTags.includes("HDR10+")) {
-        visualTags = visualTags.filter(
-            (tag) => tag !== "HDR" && tag !== "HDR10"
-        );
-    } else if (visualTags.includes("HDR10")) {
-        visualTags = visualTags.filter((tag) => tag !== "HDR");
-    }
-
-    return {
-        id: file.id,
-        name: file.name.trim(),
-        size: file.size,
-        formattedSize: formatSize(file.size),
-        resolution: resolution,
-        quality: quality,
-        languages: languages,
-        encode: encode,
-        audioTags: audioTags,
-        visualTags: visualTags,
-    };
-}
-
-function formatSize(bytes) {
-    if (bytes === 0) return "0 B";
-    const k = 1000;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 async function buildSearchQuery(streamRequest) {
@@ -667,3 +541,130 @@ async function buildSearchQuery(streamRequest) {
 
     return query;
 }
+
+async function handleRequest(request) {
+    try {
+        const url = new URL(
+            decodeURIComponent(request.url).replace("%3A", ":")
+        );
+
+        if (url.pathname === "/manifest.json")
+            return createJsonResponse(MANIFEST);
+
+        if (url.pathname === "/")
+            return Response.redirect(url.origin + "/manifest.json", 301);
+
+        const streamMatch = REGEX_PATTERNS.validRequest.exec(url.pathname);
+
+        if (!streamMatch) return new Response("Bad Request", { status: 400 });
+
+        if (!isConfigValid()) {
+            return createJsonResponse({
+                streams: [
+                    createErrorStream(
+                        "Invalid configuration\nEnable and check the logs for more information\nClick for setup instructions"
+                    ),
+                ],
+            });
+        }
+
+        const type = streamMatch[1];
+        const [imdbId, season, episode] = streamMatch[2].split(":");
+
+        const metadata = await getMetadata(type, imdbId);
+
+        if (!metadata) return createJsonResponse({ streams: [] });
+
+        const parsedStreamRequest = {
+            type: type,
+            id: imdbId,
+            season: parseInt(season) || undefined,
+            episode: parseInt(episode) || undefined,
+            metadata: metadata,
+        };
+
+        const streams = await getStreams(parsedStreamRequest);
+
+        if (streams.length === 0) {
+            return createJsonResponse({
+                streams: [
+                    createErrorStream(
+                        "No streams found\nTry joining more team drives"
+                    ),
+                ],
+            });
+        }
+        return createJsonResponse({ streams: streams });
+    } catch (error) {
+        console.error({ message: "An unexpected error occurred", error: error.toString() });
+        return new Response("Internal Server Error", { status: 500 });
+    }
+}
+
+async function getStreams(streamRequest) {
+    const streams = [];
+    const query = await buildSearchQuery(streamRequest);
+    console.log({ message: "Built search query", query, config: CONFIG });
+
+    const queryParams = {
+        q: query,
+        corpora: "allDrives",
+        includeItemsFromAllDrives: "true",
+        supportsAllDrives: "true",
+        pageSize: "1000",
+        fields: "files(id,name,size)",
+    };
+
+    const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
+    fetchUrl.search = new URLSearchParams(queryParams).toString();
+
+    const accessToken = await getAccessToken();
+
+    if (!accessToken) {
+        return [
+            createErrorStream(
+                "Invalid Credentials\nEnable and check the logs for more information\nClick for setup instructions"
+            ),
+        ];
+    }
+
+    const results = await fetchFiles(fetchUrl, accessToken);
+
+    if (results?.incompleteSearch) {
+        console.warn({ message: "The search was incomplete", results });
+    }
+
+    if (!results?.files || results.files.length === 0) {
+        console.log({ message: "No files found"});
+        return streams;
+    }
+
+    console.log({ message: "Fetched files from Google Drive", files: results.files });
+
+    const parsedFiles = parseAndFilterFiles(results.files);
+
+    console.log(results.files.length - parsedFiles.length === 0 ? {message: `${parsedFiles.length} files successfully parsed`, files: parsedFiles} : {
+        message: `${ results.files.length - parsedFiles.length} files were filtered out after parsing`,
+        filesFiltered: results.files.filter((file) => !parsedFiles.some((parsedFile) => parsedFile.id === file.id)),
+        config: CONFIG
+    });
+
+    sortParsedFiles(parsedFiles);
+
+    console.log({
+        message: "All files parsed, filtered, and sorted successfully",
+        files: parsedFiles,
+    })
+
+    parsedFiles.forEach((parsedFile) => {
+        streams.push(createStream(parsedFile, accessToken));
+    });
+
+    return streams;
+}
+
+export default {
+    async fetch(request) {
+        return handleRequest(request);
+    },
+};
