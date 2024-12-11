@@ -4,7 +4,7 @@ This is a simple addon for Stremio that allows you to watch videos from Google D
 
 It searches your entire Google Drive and any shared drives you have access to for videos and presents them in Stremio.
 
-If you combine it with some team drives, you have loads of content, all available to watch for free. 
+If you combine it with some team drives, you have loads of content, all available to watch for free and without torrenting.
 
 ![image](https://github.com/user-attachments/assets/7975eb48-1705-4779-b808-c2d61f25a099)
 
