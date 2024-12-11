@@ -4,7 +4,7 @@ This is a simple addon for Stremio that allows you to watch videos from Google D
 
 It searches your entire Google Drive and any shared drives you have access to for videos and presents them in Stremio.
 
-If you combine it with some team drives, you have loads of content, all available to watch for free. 
+If you combine it with some team drives, you have loads of content, all available to watch for free and without torrenting.
 
 ![image](https://github.com/user-attachments/assets/7975eb48-1705-4779-b808-c2d61f25a099)
 
@@ -107,7 +107,7 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
 
         - `Application Type`: Set this to `Web application`.
         - `Name`: You can set this to anything such as `Stremio GDrive`.
-        - `Authorized redirect URIs`: Set this to <CallBackUrl />
+        - `Authorized redirect URIs`: Set this to `https://guides.viren070.me/google/oauth/callback`
 
 
     4. Click on `Create`.
@@ -165,18 +165,17 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
 
 8. Now, we can get the code for the Cloudflare Worker.
 
-    1. Go to the <Link to="/oauth/google" target="_blank" >OAuth Tool</Link>
+    1. Go to the [OAuth Tool](https://guides.viren070.me/oauth/google)
 
     2. Fill in the form with the `Client ID` and `Client Secret` from the previous step.
 
     3. Click `Authorise`
 
     4. Sign in with your Google account and allow the app to access your Google Drive.
-    :::tip
-    You may encounter a warning page saying `Google hasn't verified this app`, click on `Advanced` and then `Go to... (unsafe)`.
 
-    This warning is because the app is not verified by Google. This is normal for self-hosted apps.
-    :::
+        > You may encounter a warning page saying `Google hasn't verified this app`, click on `Advanced` and then `Go to... (unsafe)`.
+        >
+        > This warning is because the app is not verified by Google. This is normal for self-hosted apps.
 
     5. You will be redirected back to the OAuth Tool with a success message. Click `Get Addon Code`.
 
@@ -188,13 +187,13 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
 
         ![Cloudflare Workers](/images/cloudflare_finished_worker_script.png)
 
-9. Click `Deploy` in the top right to save your changes and deploy the worker.
+10. Click `Deploy` in the top right to save your changes and deploy the worker.
 
 11. Once deployed, you should see a green success message at the bottom. Click `Visit` next to the deploy button to go to the addon URL.
 
 12. You should be redirected to the /manifest.json. if not, append `/manifest.json` to the URL in the address bar. 
 
-13. Copy the URL and [add it to Stremio](/stremio/faq#how-do-i-install-an-addon-manually).  
+13. Copy the URL and [add it to Stremio](https://guides.viren070.me/stremio/faq#how-do-i-install-an-addon-manually).  
 
 Done! You have now set up your own addon which will allow you to stream videos from your drives and team drives.
 

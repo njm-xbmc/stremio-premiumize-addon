@@ -524,7 +524,7 @@ function createErrorStream(description) {
     return {
         name: `[⚠️] ${MANIFEST.name}`,
         description: description,
-        externalUrl: "https://guides.viren070.me/stremio/addons/stremio-gdrive",
+        externalUrl: "https://github.com/Viren070/stremio-gdrive-addon",
     };
 }
 
