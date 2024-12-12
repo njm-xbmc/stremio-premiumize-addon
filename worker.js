@@ -202,6 +202,8 @@ function createStream(parsedFile, accessToken) {
                     Authorization: `Bearer ${accessToken}`,
                 },
             },
+            videoSize: parsedFile.size,
+            filename: parsedFile.name,
         },
     };
 }
