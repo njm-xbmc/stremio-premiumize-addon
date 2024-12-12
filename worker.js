@@ -202,7 +202,7 @@ function createStream(parsedFile, accessToken) {
                     Authorization: `Bearer ${accessToken}`,
                 },
             },
-            videoSize: parsedFile.size,
+            videoSize: parseInt(parsedFile.size) || 0,
             filename: parsedFile.name,
         },
     };
