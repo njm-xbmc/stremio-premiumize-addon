@@ -204,6 +204,7 @@ function createStream(parsedFile, accessToken) {
             },
             videoSize: parseInt(parsedFile.size) || 0,
             filename: parsedFile.name,
+            bingeGroup: `${MANIFEST.name}-${parsedFile.resolution}-${parsedFile.quality}-${parsedFile.encode}`,
         },
     };
 }
