@@ -439,13 +439,13 @@ async function getImdbSuggestionMeta(id) {
         throw new Error("No matching item found with the given id");
     }
 
-    if (!item?.l || !item?.q) {
+    if (!item?.l || !item?.y) {
         throw new Error("Missing name or year");
     }
 
     return {
         name: item.l,
-        year: item.q,
+        year: item.y,
     };
 }
 
