@@ -213,7 +213,7 @@ function createStream(parsedFile, accessToken) {
     };
     
     if (CONFIG.proxiedPlayback) {
-        stream.url = `${globalThis.playbackUrl}/${parsedFile.id}/${parsedFile.name}`;
+        stream.url = `${globalThis.playbackUrl}/${parsedFile.id}/${encodeURIComponent(parsedFile.name)}`;
     } else {
         stream.url = API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id).replace("{filename}", parsedFile.name);
         stream.behaviorHints.proxyHeaders = {
@@ -639,7 +639,7 @@ async function handleRequest(request) {
 
         if (playbackMatch) {
             console.log({ message: "Processing playback request", fileId: playbackMatch[1], range: request.headers.get("Range") });
-            const filename = playbackMatch[2];
+            const filename = decodeURIComponent(playbackMatch[2]);
             const fileId = playbackMatch[1];
             return createProxiedStreamResponse(fileId, filename, request);
         }
