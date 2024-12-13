@@ -20,6 +20,7 @@ const CONFIG = {
     sortBy: ["resolution", "hdrdv", "quality", "size"],
     addonName: "GDrive",
     prioritiseLanguage: null,
+    proxiedPlayback: true,
     driveQueryTerms: {
         episodeFormat: "fullText",
         movieYear: "name",
@@ -46,14 +47,15 @@ const HEADERS = {
 const API_ENDPOINTS = {
     DRIVE_FETCH_FILES: "https://content.googleapis.com/drive/v3/files",
     DRIVE_STREAM_FILE:
-        "https://www.googleapis.com/drive/v3/files/{fileId}?alt=media",
+        "https://www.googleapis.com/drive/v3/files/{fileId}?alt=media&file_name={filename}",
     DRIVE_TOKEN: "https://oauth2.googleapis.com/token",
     CINEMETA: "https://v3-cinemeta.strem.io/meta/{type}/{id}.json",
     IMDB_SUGGEST: "https://v3.sg.media-imdb.com/suggestion/a/{id}.json",
 };
 
 const REGEX_PATTERNS = {
-    validRequest: /\/stream\/(movie|series)\/([a-zA-Z0-9%:]+)\.json/,
+    validStreamRequest: /\/stream\/(movie|series)\/([a-zA-Z0-9%:]+)\.json/,
+    validPlaybackRequest: /\/playback\/([a-zA-Z0-9_-]+)\/(.+)/,
     resolutions: {
         "2160p": /(?:\[)?\b_?(4k|2160p|uhd)_?\b(?:\])?/i,
         "1080p": /(?:\[)?\b_?(1080p|fhd)_?\b(?:\])?/i,
@@ -190,23 +192,31 @@ function createStream(parsedFile, accessToken) {
 
     description += `\n📄 ${parsedFile.name}`;
 
-    return {
+    const stream = {
         name: name,
         description: description,
-        url: API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id),
+        url: "",
         behaviorHints: {
-            notWebReady: true,
-            proxyHeaders: {
-                request: {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            },
             videoSize: parseInt(parsedFile.size) || 0,
             filename: parsedFile.name,
             bingeGroup: `${MANIFEST.name}-${parsedFile.resolution}-${parsedFile.quality}-${parsedFile.encode}`,
         },
     };
+    
+    if (CONFIG.proxiedPlayback) {
+        stream.url = `${globalThis.playbackUrl}/${parsedFile.id}/${parsedFile.name}`;
+    } else {
+        stream.url = API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id).replace("{filename}", parsedFile.name);
+        stream.behaviorHints.proxyHeaders = {
+            request: {
+                Accept: "application/json",
+                Authorization: `Bearer ${accessToken}`,
+            },
+        };
+        stream.behaviorHints.notWebReady = true;
+    }
+    
+    return stream;
 }
 
 function createErrorStream(description) {
@@ -594,6 +604,7 @@ async function handleRequest(request) {
         const url = new URL(
             decodeURIComponent(request.url).replace("%3A", ":")
         );
+        globalThis.playbackUrl = url.origin + "/playback";
 
         if (url.pathname === "/manifest.json")
             return createJsonResponse(MANIFEST);
@@ -601,9 +612,11 @@ async function handleRequest(request) {
         if (url.pathname === "/")
             return Response.redirect(url.origin + "/manifest.json", 301);
 
-        const streamMatch = REGEX_PATTERNS.validRequest.exec(url.pathname);
 
-        if (!streamMatch) return new Response("Bad Request", { status: 400 });
+        const streamMatch = REGEX_PATTERNS.validStreamRequest.exec(url.pathname);
+        const playbackMatch = REGEX_PATTERNS.validPlaybackRequest.exec(url.pathname);
+
+        if (!(playbackMatch || streamMatch)) return new Response("Bad Request", { status: 400 });
 
         if (!isConfigValid()) {
             return createJsonResponse({
@@ -613,6 +626,13 @@ async function handleRequest(request) {
                     ),
                 ],
             });
+        }
+
+        if (playbackMatch) {
+            console.log({ message: "Processing playback request", fileId: playbackMatch[1], range: request.headers.get("Range") });
+            const filename = playbackMatch[2];
+            const fileId = playbackMatch[1];
+            return createProxiedStreamResponse(fileId, filename, request);
         }
 
         const type = streamMatch[1];
@@ -647,6 +667,37 @@ async function handleRequest(request) {
             message: "An unexpected error occurred",
             error: error.toString(),
         });
+        return new Response("Internal Server Error", { status: 500 });
+    }
+}
+
+async function createProxiedStreamResponse(fileId, filename, request) {
+    try {
+        const accessToken = await getAccessToken();
+        const streamUrl = API_ENDPOINTS.DRIVE_STREAM_FILE
+            .replace("{fileId}", fileId)
+            .replace("{filename}", filename);
+
+        const headers = {
+            "Authorization": `Bearer ${accessToken}`,
+            "Range": request.headers.get("Range") || "bytes=0-",
+        };
+
+        const response = await fetch(streamUrl, { headers });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch file: ${response.statusText}`);
+        }
+
+        return new Response(response.body, {
+            headers: {
+                "Content-Range": response.headers.get("Content-Range"),
+                "Content-Length": response.headers.get("Content-Length"),
+            },
+            status: response.status,
+            statusText: response.statusText,
+        });
+    } catch (error) {
+        console.error({ message: "Failed to create proxied stream response", error: error.toString() });
         return new Response("Internal Server Error", { status: 500 });
     }
 }
