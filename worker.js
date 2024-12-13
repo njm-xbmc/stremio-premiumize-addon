@@ -192,6 +192,15 @@ function createStream(parsedFile, accessToken) {
 
     description += `\n📄 ${parsedFile.name}`;
 
+    const combinedTags = [
+        parsedFile.resolution,
+        parsedFile.quality,
+        parsedFile.encode,
+        ...parsedFile.visualTags,
+        ...parsedFile.audioTags,
+        ...parsedFile.languages,
+    ];
+
     const stream = {
         name: name,
         description: description,
@@ -199,7 +208,7 @@ function createStream(parsedFile, accessToken) {
         behaviorHints: {
             videoSize: parseInt(parsedFile.size) || 0,
             filename: parsedFile.name,
-            bingeGroup: `${MANIFEST.name}-${parsedFile.resolution}-${parsedFile.quality}-${parsedFile.encode}`,
+            bingeGroup: `${MANIFEST.name}|${combinedTags.join("|")}`,
         },
     };
     
