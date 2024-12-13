@@ -63,14 +63,16 @@ const REGEX_PATTERNS = {
         "480p": /(?<![^ [_\-.])(480p|sd)(?=[ \]_.-]|$)/i,
     },
     qualities: {
-        "BluRay REMUX": /(?<![^ [_\-.])(blu[ .\-_]?ray[ .\-_]?remux|bd[ .\-_]?remux)(?=[ \]_.-]|$)/i,
+        "BluRay REMUX":
+            /(?<![^ [_\-.])(blu[ .\-_]?ray[ .\-_]?remux|bd[ .\-_]?remux)(?=[ \]_.-]|$)/i,
         BDRip: /(?<![^ [_\-.])(bd[ .\-_]?rip|blu[ .\-_]?ray[ .\-_]?rip|br[ .\-_]?rip)(?=[ \]_.-]|$)/i,
         BluRay: /(?<![^ [_\-.])(blu[ .\-_]?ray|bd)(?=[ \]_.-]|$)/i,
         HDRip: /(?<![^ [_\-.])(hd[ .\-_]?rip)(?=[ \]_.-]|$)/i,
         "WEB-DL": /(?<![^ [_\-.])(web[ .\-_]?dl)(?=[ \]_.-]|$)/i,
         WEBRip: /(?<![^ [_\-.])(web[ .\-_]?rip)(?=[ \]_.-]|$)/i,
         WEB: /(?<![^ [_\-.])(web)(?=[ \]_.-]|$)/i,
-        "CAM/TS": /(?<![^ [_\-.])(cam|ts|tc|telesync|hdts|hdtc|telecine)(?=[ \]_.-]|$)/i,
+        "CAM/TS":
+            /(?<![^ [_\-.])(cam|ts|tc|telesync|hdts|hdtc|telecine)(?=[ \]_.-]|$)/i,
     },
     visualTags: {
         "HDR10+": /(?<![^ [_\-.])(hdr10[ .\-_]?[+]?|hdr10plus)(?=[ \]_.-]|$)/i,
@@ -81,9 +83,12 @@ const REGEX_PATTERNS = {
     },
     audioTags: {
         Atmos: /(?<![^ [_\-.])(atmos)(?=[ \]_.-]|$)/i,
-        "DDP5.1": /(?<![^ [_\-.])(ddp\.1|dolby[ .\-_]?digital[ .\-_]?plus[ .\-_]?5\.1)(?=[ \]_.-]|$)/i,
-        "Dolby Digital Plus": /(?<![^ [_\-.])(ddp|dolby[ .\-_]?digital[ .\-_]?plus)(?=[ \]_.-]|$)/i,
-        "Dolby Digital": /(?<![^ [_\-.])(dd|dolby[ .\-_]?digital)(?=[ \]_.-]|$)/i,
+        "DDP5.1":
+            /(?<![^ [_\-.])(ddp\.1|dolby[ .\-_]?digital[ .\-_]?plus[ .\-_]?5\.1)(?=[ \]_.-]|$)/i,
+        "Dolby Digital Plus":
+            /(?<![^ [_\-.])(ddp|dolby[ .\-_]?digital[ .\-_]?plus)(?=[ \]_.-]|$)/i,
+        "Dolby Digital":
+            /(?<![^ [_\-.])(dd|dolby[ .\-_]?digital)(?=[ \]_.-]|$)/i,
         "DTS HD": /(?<![^ [_\-.])(dts[ .\-_]?hd[ .\-_]?ma)(?=[ \]_.-]|$)/i,
         DTS: /(?<![^ [_\-.])(dts)(?=[ \]_.-]|$)/i,
         TrueHD: /(?<![^ [_\-.])(truehd)(?=[ \]_.-]|$)/i,
@@ -207,11 +212,16 @@ function createStream(parsedFile, accessToken) {
             bingeGroup: `${MANIFEST.name}|${combinedTags.join("|")}`,
         },
     };
-    
+
     if (CONFIG.proxiedPlayback) {
-        stream.url = `${globalThis.playbackUrl}/${parsedFile.id}/${encodeURIComponent(parsedFile.name)}`;
+        stream.url = `${globalThis.playbackUrl}/${
+            parsedFile.id
+        }/${encodeURIComponent(parsedFile.name)}`;
     } else {
-        stream.url = API_ENDPOINTS.DRIVE_STREAM_FILE.replace("{fileId}", parsedFile.id).replace("{filename}", parsedFile.name);
+        stream.url = API_ENDPOINTS.DRIVE_STREAM_FILE.replace(
+            "{fileId}",
+            parsedFile.id
+        ).replace("{filename}", parsedFile.name);
         stream.behaviorHints.proxyHeaders = {
             request: {
                 Accept: "application/json",
@@ -220,7 +230,7 @@ function createStream(parsedFile, accessToken) {
         };
         stream.behaviorHints.notWebReady = true;
     }
-    
+
     return stream;
 }
 
@@ -617,11 +627,15 @@ async function handleRequest(request) {
         if (url.pathname === "/")
             return Response.redirect(url.origin + "/manifest.json", 301);
 
+        const streamMatch = REGEX_PATTERNS.validStreamRequest.exec(
+            url.pathname
+        );
+        const playbackMatch = REGEX_PATTERNS.validPlaybackRequest.exec(
+            url.pathname
+        );
 
-        const streamMatch = REGEX_PATTERNS.validStreamRequest.exec(url.pathname);
-        const playbackMatch = REGEX_PATTERNS.validPlaybackRequest.exec(url.pathname);
-
-        if (!(playbackMatch || streamMatch)) return new Response("Bad Request", { status: 400 });
+        if (!(playbackMatch || streamMatch))
+            return new Response("Bad Request", { status: 400 });
 
         if (!isConfigValid()) {
             return createJsonResponse({
@@ -634,7 +648,11 @@ async function handleRequest(request) {
         }
 
         if (playbackMatch) {
-            console.log({ message: "Processing playback request", fileId: playbackMatch[1], range: request.headers.get("Range") });
+            console.log({
+                message: "Processing playback request",
+                fileId: playbackMatch[1],
+                range: request.headers.get("Range"),
+            });
             const filename = decodeURIComponent(playbackMatch[2]);
             const fileId = playbackMatch[1];
             return createProxiedStreamResponse(fileId, filename, request);
@@ -679,13 +697,14 @@ async function handleRequest(request) {
 async function createProxiedStreamResponse(fileId, filename, request) {
     try {
         const accessToken = await getAccessToken();
-        const streamUrl = API_ENDPOINTS.DRIVE_STREAM_FILE
-            .replace("{fileId}", fileId)
-            .replace("{filename}", filename);
+        const streamUrl = API_ENDPOINTS.DRIVE_STREAM_FILE.replace(
+            "{fileId}",
+            fileId
+        ).replace("{filename}", filename);
 
         const headers = {
-            "Authorization": `Bearer ${accessToken}`,
-            "Range": request.headers.get("Range") || "bytes=0-",
+            Authorization: `Bearer ${accessToken}`,
+            Range: request.headers.get("Range") || "bytes=0-",
         };
 
         const response = await fetch(streamUrl, { headers });
@@ -702,7 +721,10 @@ async function createProxiedStreamResponse(fileId, filename, request) {
             statusText: response.statusText,
         });
     } catch (error) {
-        console.error({ message: "Failed to create proxied stream response", error: error.toString() });
+        console.error({
+            message: "Failed to create proxied stream response",
+            error: error.toString(),
+        });
         return new Response("Internal Server Error", { status: 500 });
     }
 }
