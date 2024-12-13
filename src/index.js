@@ -29,7 +29,7 @@ const CONFIG = {
 
 const MANIFEST = {
     id: "stremio.gdrive.worker",
-    version: "1.1.0",
+    version: "1.0.0",
     name: CONFIG.addonName,
     description: "Stream your files from Google Drive within Stremio!",
     catalogs: [],
