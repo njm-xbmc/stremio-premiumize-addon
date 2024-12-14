@@ -8,13 +8,17 @@ const CONFIG = {
     resolutions: ["2160p", "1080p", "720p", "480p", "Unknown"],
     qualities: [
         "BluRay REMUX",
-        "BDRip",
         "BluRay",
-        "HDRip",
         "WEB-DL",
         "WEBRip",
-        "WEB",
-        "CAM/TS",
+        "HDRip",
+        "HC HD-Rip",
+        "DVDRip",
+        "HDTV",
+        "CAM",
+        "Telesync",
+        "Telecine",
+        "Screener",
         "Unknown",
     ],
     visualTags: ["HDR10+", "HDR10", "HDR", "DV", "IMAX", "AI"],
@@ -64,16 +68,23 @@ const REGEX_PATTERNS = {
         "480p": /(?<![^ [_\-.])(480p|sd)(?=[ \]_.-]|$)/i,
     },
     qualities: {
+        // BLURAY
         "BluRay REMUX":
-            /(?<![^ [_\-.])(blu[ .\-_]?ray[ .\-_]?remux|bd[ .\-_]?remux)(?=[ \]_.-]|$)/i,
-        BDRip: /(?<![^ [_\-.])(bd[ .\-_]?rip|blu[ .\-_]?ray[ .\-_]?rip|br[ .\-_]?rip)(?=[ \]_.-]|$)/i,
-        BluRay: /(?<![^ [_\-.])(blu[ .\-_]?ray|bd)(?=[ \]_.-]|$)/i,
-        HDRip: /(?<![^ [_\-.])(hd[ .\-_]?rip)(?=[ \]_.-]|$)/i,
-        "WEB-DL": /(?<![^ [_\-.])(web[ .\-_]?dl)(?=[ \]_.-]|$)/i,
+            /(?<![^ [_\-.])((blu[ .\-_]?ray|bd|br|b)[ .\-_]?remux)(?=[ \]_.-]|$)/i,
+        BluRay: /(?<![^ [_\-.])(blu[ .\-_]?ray|((bd|br|b)[ .\-_]?(rip|r)?))(?![ .\-_]?remux)(?=[ \]_.-]|$)/i,
+        // WEB/HD
+        "WEB-DL": /(?<![^ [_\-.])(web[ .\-_]?(dl)?)(?=[ \]_.-]|$)/i,
         WEBRip: /(?<![^ [_\-.])(web[ .\-_]?rip)(?=[ \]_.-]|$)/i,
-        WEB: /(?<![^ [_\-.])(web)(?=[ \]_.-]|$)/i,
-        "CAM/TS":
-            /(?<![^ [_\-.])(cam|ts|tc|telesync|hdts|hdtc|telecine)(?=[ \]_.-]|$)/i,
+        HDRip: /(?<![^ [_\-.])(hd[ .\-_]?rip|web[ .\-_]?dl[ .\-_]?rip)(?=[ \]_.-]|$)/i,
+        "HC HD-Rip": /(?<![^ [_\-.])(hc|hd[ .\-_]?rip)(?=[ \]_.-]|$)/i,
+        // DVD/TV/SAT
+        DVDRip: /(?<![^ [_\-.])(dvd[ .\-_]?(rip|mux|r|full|5|9))(?=[ \]_.-]|$)/i,
+        HDTV: /(?<![^ [_\-.])((hd|pd)tv|tv[ .\-_]?rip|hdtv[ .\-_]?rip|dsr(ip)?|sat[ .\-_]?rip)(?=[ \]_.-]|$)/i,
+        // CAM/TS/SCR
+        CAM: /(?<![^ [_\-.])(cam|hdcam|cam[ .\-_]?rip)(?=[ \]_.-]|$)/i,
+        Telesync: /(?<![^ [_\-.])(telesync|ts|hd[ .\-_]?ts|pdvd|predvdrip)(?=[ \]_.-]|$)/i,
+        Telecine: /(?<![^ [_\-.])(telecine|tc|hd[ .\-_]?tc)(?=[ \]_.-]|$)/i,
+        Screener: /(?<![^ [_\-.])(((dvd|bd|web)?[ .\-_]?)?(scr(eener)?))(?=[ \]_.-]|$)/i,
     },
     visualTags: {
         "HDR10+": /(?<![^ [_\-.])(hdr10[ .\-_]?[+]?|hdr10plus)(?=[ \]_.-]|$)/i,
