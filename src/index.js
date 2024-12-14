@@ -96,8 +96,8 @@ const REGEX_PATTERNS = {
     },
     audioTags: {
         Atmos: /(?<![^ [_\-.])(atmos)(?=[ \]_.-]|$)/i,
-        "Dolby Digital Plus": /(?<![^ [_\-.])((?:ddp|dolby[ .\-_]?digital[ .\-_]?plus)(?:[ .\-_]?5\.1)?)(?=[ \]_.-]|$)/i,
-        "Dolby Digital": /(?<![^ [_\-.])((?:dd|dolby[ .\-_]?digital)(?:[ .\-_]?5\.1)?)(?=[ \]_.-]|$)/i,
+        "Dolby Digital Plus": /(?<![^ [_\-.])((?:ddp|dolby[ .\-_]?digital[ .\-_]?plus)(?:[ .\-_]?(5\.1|7\.1))?)(?=[ \]_.-]|$)/i,
+        "Dolby Digital": /(?<![^ [_\-.])((?:dd|dolby[ .\-_]?digital)(?:[ .\-_]?(5\.1|7\.1))?)(?=[ \]_.-]|$)/i,
         "DTS-HD": /(?<![^ [_\-.])(dts[ .\-_]?hd[ .\-_]?ma?)(?=[ \]_.-]|$)/i,
         DTS: /(?<![^ [_\-.])(dts)(?=[ \]_.-]|$)/i,
         TrueHD: /(?<![^ [_\-.])(truehd)(?=[ \]_.-]|$)/i,
