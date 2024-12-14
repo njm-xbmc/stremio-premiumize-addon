@@ -8,6 +8,16 @@ If you combine it with some team drives, you have loads of content, all availabl
 
 ![image](https://github.com/user-attachments/assets/7975eb48-1705-4779-b808-c2d61f25a099)
 
+## Features
+
+- Search your Google Drive and shared drives for videos
+- Parses filenames for information accurately using regex and displays it in a appealing format. 
+- Easily configurable using the `CONFIG` object at the top of the code. (See [Configuration](#configuration))
+    - Change the addon name
+    - Change the order of resolutions, qualities, visual tags, and filter them out if unwanted
+    - Change the sorting criteria (resolution, quality, size, visual tags)
+    - Prioritise specific languages and have them show up first in the results
+- Only requires a single deployment with one file, making it easy to deploy and make changes. 
 
 ## Deployment
 
