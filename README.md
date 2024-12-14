@@ -6,7 +6,7 @@ It searches your entire Google Drive and any shared drives you have access to fo
 
 If you combine it with some team drives, you have loads of content, all available to watch for free and without torrenting.
 
-![image](https://github.com/user-attachments/assets/7975eb48-1705-4779-b808-c2d61f25a099)
+![showcase](/images/stremio_gdrive_showcase.png)
 
 ## Features
 
