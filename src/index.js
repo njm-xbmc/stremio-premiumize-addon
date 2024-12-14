@@ -118,6 +118,8 @@ const REGEX_PATTERNS = {
         Japanese: /(?<![^ [_\-.])(japanese|jpn)(?=[ \]_.-]|$)/i,
         Korean: /(?<![^ [_\-.])(korean|kor)(?=[ \]_.-]|$)/i,
         Chinese: /(?<![^ [_\-.])(chinese|chn)(?=[ \]_.-]|$)/i,
+        Multi: /(?<![^ [_\-.])(MULTi)(?=[ \]_.-]|$)/i,
+        "Dual Audio": /(?<![^ [_\-.])(dual[ .\-_]?audio)(?=[ \]_.-]|$)/i,
     },
 };
 
