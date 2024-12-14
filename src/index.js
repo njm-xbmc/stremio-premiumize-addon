@@ -155,8 +155,14 @@ function compareLanguages(a, b) {
         const bHasPrioritisedLanguage = b.languages.includes(
             CONFIG.prioritiseLanguage
         );
+        const aHasMultiLanguage = a.languages.includes("Multi");
+        const bHasMultiLanguage = b.languages.includes("Multi");
+
         if (aHasPrioritisedLanguage && !bHasPrioritisedLanguage) return -1;
         if (!aHasPrioritisedLanguage && bHasPrioritisedLanguage) return 1;
+
+        if (aHasMultiLanguage && !bHasMultiLanguage) return -1;
+        if (!aHasMultiLanguage && bHasMultiLanguage) return 1;
     }
     return 0;
 }
