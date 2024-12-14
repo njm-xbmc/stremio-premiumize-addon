@@ -22,7 +22,8 @@ const CONFIG = {
         "Unknown",
     ],
     visualTags: ["HDR10+", "HDR10", "HDR", "DV", "IMAX", "AI"],
-    sortBy: ["resolution", "visualTag",  "quality", "size"],
+    sortBy: ["resolution", "visualTag", "size", "quality"],
+    considerHdrTagsAsEqual: true,
     addonName: "GDrive",
     prioritiseLanguage: null,
     proxiedPlayback: true,
@@ -182,15 +183,20 @@ function compareByField(a, b, field) {
         );
     } else if (field === "visualTag") {
         // Find the highest priority visual tag in each file
+        const getIndexOfTag = (tag) => (
+            CONFIG.considerHdrTagsAsEqual && tag.startsWith("HDR")
+                ? CONFIG.visualTags.indexOf("HDR10+")
+                : CONFIG.visualTags.indexOf(tag)
+        )
         const aVisualTagIndex = a.visualTags.reduce(
             (minIndex, tag) =>
-                Math.min(minIndex, CONFIG.visualTags.indexOf(tag)),
+                Math.min(minIndex, getIndexOfTag(tag)),
             CONFIG.visualTags.length
         );
 
         const bVisualTagIndex = b.visualTags.reduce(
             (minIndex, tag) =>
-                Math.min(minIndex, CONFIG.visualTags.indexOf(tag)),
+                Math.min(minIndex, getIndexOfTag(tag)),
             CONFIG.visualTags.length
         );
         // Sort by the visual tag index
