@@ -17,7 +17,8 @@ const CONFIG = {
         "CAM/TS",
         "Unknown",
     ],
-    sortBy: ["resolution", "hdrdv", "quality", "size"],
+    visualTags: ["HDR10+", "HDR10", "HDR", "DV", "IMAX", "AI"],
+    sortBy: ["resolution", "visualTag",  "quality", "size"],
     addonName: "GDrive",
     prioritiseLanguage: null,
     proxiedPlayback: true,
@@ -162,15 +163,21 @@ function compareByField(a, b, field) {
             CONFIG.qualities.indexOf(a.quality) -
             CONFIG.qualities.indexOf(b.quality)
         );
-    } else if (field === "hdrdv") {
-        const aHasHDRDV = a.visualTags.some((tag) =>
-            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
+    } else if (field === "visualTag") {
+        // Find the highest priority visual tag in each file
+        const aVisualTagIndex = a.visualTags.reduce(
+            (minIndex, tag) =>
+                Math.min(minIndex, CONFIG.visualTags.indexOf(tag)),
+            CONFIG.visualTags.length
         );
-        const bHasHDRDV = b.visualTags.some((tag) =>
-            ["HDR", "HDR10", "HDR10+", "DV"].includes(tag)
+
+        const bVisualTagIndex = b.visualTags.reduce(
+            (minIndex, tag) =>
+                Math.min(minIndex, CONFIG.visualTags.indexOf(tag)),
+            CONFIG.visualTags.length
         );
-        if (aHasHDRDV && !bHasHDRDV) return -1;
-        if (!aHasHDRDV && bHasHDRDV) return 1;
+        // Sort by the visual tag index
+        return aVisualTagIndex - bVisualTagIndex;
     }
     return 0;
 }
@@ -262,7 +269,10 @@ function parseAndFilterFiles(files) {
         .filter(
             (parsedFile) =>
                 CONFIG.resolutions.includes(parsedFile.resolution) &&
-                CONFIG.qualities.includes(parsedFile.quality)
+                CONFIG.qualities.includes(parsedFile.quality) &&
+                parsedFile.visualTags.every((tag) =>
+                    CONFIG.visualTags.includes(tag)
+                )
         );
 }
 
@@ -341,17 +351,19 @@ function isConfigValid() {
     const validValues = {
         resolutions: [...Object.keys(REGEX_PATTERNS.resolutions), "Unknown"],
         qualities: [...Object.keys(REGEX_PATTERNS.qualities), "Unknown"],
-        sortBy: ["resolution", "size", "quality", "hdrdv"],
+        sortBy: ["resolution", "size", "quality", "visualTags"],
         languages: [...Object.keys(REGEX_PATTERNS.languages), "Unknown"],
+        visualTags: [...Object.keys(REGEX_PATTERNS.visualTags)],
     };
 
     const keyToSingular = {
         resolutions: "resolution",
         qualities: "quality",
         sortBy: "sort criterion",
+        visualTags: "visual tag",
     };
 
-    for (const key of ["resolutions", "qualities", "sortBy"]) {
+    for (const key of ["resolutions", "qualities", "sortBy", "visualTags"]) {
         const configValue = CONFIG[key];
         if (!Array.isArray(configValue)) {
             console.error(`Invalid ${key}: ${configValue} is not an array`);
