@@ -351,7 +351,7 @@ function isConfigValid() {
     const validValues = {
         resolutions: [...Object.keys(REGEX_PATTERNS.resolutions), "Unknown"],
         qualities: [...Object.keys(REGEX_PATTERNS.qualities), "Unknown"],
-        sortBy: ["resolution", "size", "quality", "visualTags"],
+        sortBy: ["resolution", "size", "quality", "visualTag"],
         languages: [...Object.keys(REGEX_PATTERNS.languages), "Unknown"],
         visualTags: [...Object.keys(REGEX_PATTERNS.visualTags)],
     };
