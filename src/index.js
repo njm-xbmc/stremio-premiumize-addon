@@ -80,6 +80,7 @@ const REGEX_PATTERNS = {
         HDR: /(?<![^ [_\-.])(hdr)(?=[ \]_.-]|$)/i,
         DV: /(?<![^ [_\-.])(dolby[ .\-_]?vision(?:[ .\-_]?atmos)?|dv)(?=[ \]_.-]|$)/i,
         IMAX: /(?<![^ [_\-.])(imax)(?=[ \]_.-]|$)/i,
+        AI: /(?<![^ [_\-.])(ai[ .\-_]?upscale|enhanced|remaster)(?=[ \]_.-]|$)/i,
     },
     audioTags: {
         Atmos: /(?<![^ [_\-.])(atmos)(?=[ \]_.-]|$)/i,
