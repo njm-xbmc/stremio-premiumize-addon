@@ -117,7 +117,7 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
 
         - `Application Type`: Set this to `Web application`.
         - `Name`: You can set this to anything such as `Stremio GDrive`.
-        - `Authorized redirect URIs`: Set this to `https://guides.viren070.me/google/oauth/callback`
+        - `Authorized redirect URIs`: Set this to `https://guides.viren070.me/oauth/google/callback`
 
 
     4. Click on `Create`.
