@@ -191,7 +191,7 @@ Here is a guide to deploying this addon, taken from my site: [Viren070's guides]
 
     6. You should be shown another success message. Then, make sure you're on the `Viren070` tab and you should see a block of code. Copy this code.
     
-    7. Go back to the Cloudflare Worker editor and paste the code into the editor.
+    7. Go back to the Cloudflare Worker editor and after removing the existing code, paste the code you copied.
 
     8. Your code should look something like this:
 
