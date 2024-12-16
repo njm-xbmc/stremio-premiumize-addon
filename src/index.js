@@ -207,14 +207,17 @@ function compareByField(a, b, field) {
 
 function createStream(parsedFile, accessToken) {
     let name = `${MANIFEST.name}\n${parsedFile.resolution}`;
-    if (parsedFile.visualTags.length > 0) {
-        name += `\n${parsedFile.visualTags.join(" | ")}`;
-    }
-    let description = `🎥 ${parsedFile.quality} ${parsedFile.encode}`;
 
-    if (parsedFile.audioTags.length > 0) {
-        description += ` 🎧 ${parsedFile.audioTags.join(" | ")}`;
-    }
+    let description = `🎥 ${parsedFile.quality}   ${parsedFile.encode ? '🎞️ ' + parsedFile.encode : ''}`;
+
+    if (parsedFile.visualTags.length > 0 || parsedFile.audioTags.length > 0) {
+		description += "\n";
+
+		description +=
+		parsedFile.visualTags.length > 0 ?  `📺 ${parsedFile.visualTags.join(" | ")}   ` : "";
+		description +=
+		parsedFile.audioTags.length > 0 ?  `🎧 ${parsedFile.audioTags.join(" | ")}` : "";
+	}
 
     description += `\n📦 ${parsedFile.formattedSize}`;
     if (parsedFile.languages.length !== 0) {
