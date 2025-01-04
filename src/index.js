@@ -23,6 +23,7 @@ const CONFIG = {
     ],
     visualTags: ["HDR10+", "HDR10", "HDR", "DV", "IMAX", "AI"],
     sortBy: ["resolution", "visualTag", "size", "quality"],
+    showAudioFiles: false,
     considerHdrTagsAsEqual: true,
     addonName: "GDrive",
     prioritiseLanguage: null,
@@ -252,7 +253,10 @@ function compareByField(a, b, field) {
 }
 
 function createStream(parsedFile, accessToken) {
-    let name = `${MANIFEST.name}\n${parsedFile.resolution}`;
+
+    let name = parsedFile.type.startsWith("audio") 
+        ? `[🎵 Audio] ${MANIFEST.name} ${parsedFile.extension.toUpperCase()}`
+        : `${MANIFEST.name} ${parsedFile.resolution}`;
 
     let description = `🎥 ${parsedFile.quality}   ${parsedFile.encode ? '🎞️ ' + parsedFile.encode : ''}`;
 
@@ -334,6 +338,10 @@ function sortParsedFiles(parsedFiles) {
             if (fieldComparison !== 0) return fieldComparison;
         }
 
+        // move audio files to the end
+        if (a.type.startsWith("audio") && !b.type.startsWith("audio")) return 1;
+        if (!a.type.startsWith("audio") && b.type.startsWith("audio")) return -1;
+
         return 0;
     });
 }
@@ -393,7 +401,9 @@ function parseFile(file) {
         encode: encode,
         audioTags: audioTags,
         visualTags: visualTags,
-        duration: file.videoMediaMetadata?.durationMillis
+        duration: file.videoMediaMetadata?.durationMillis,
+        type: file.mimeType,
+        extension: file.fileExtension,
     };
 }
 
@@ -619,8 +629,10 @@ async function buildSearchQuery(streamRequest) {
     const { name, year } = streamRequest.metadata;
 
     let query =
-        "trashed=false and mimeType contains 'video/' and not name contains 'trailer' and not name contains 'sample'";
+        "trashed=false and not name contains 'trailer' and not name contains 'sample'";
 
+    query += CONFIG.showAudioFiles ? ` and (mimeType contains 'video/' or mimeType contains 'audio/')` : ` and mimeType contains 'video/'`;
+    
     const nameQuery = name
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .split(" ")
@@ -828,7 +840,7 @@ async function getStreams(streamRequest) {
         includeItemsFromAllDrives: "true",
         supportsAllDrives: "true",
         pageSize: "1000",
-        fields: "files(id,name,size,videoMediaMetadata)",
+        fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension)",
     };
 
     const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
