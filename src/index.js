@@ -243,6 +243,10 @@ function compareByField(a, b, field) {
         );
         // Sort by the visual tag index
         return aVisualTagIndex - bVisualTagIndex;
+    } else if (field === "durationAsc") {
+        return a.duration - b.duration;
+    } else if (field === "durationDesc") {
+        return b.duration - a.duration;
     }
     return 0;
 }
@@ -423,7 +427,7 @@ function isConfigValid() {
     const validValues = {
         resolutions: [...Object.keys(REGEX_PATTERNS.resolutions), "Unknown"],
         qualities: [...Object.keys(REGEX_PATTERNS.qualities), "Unknown"],
-        sortBy: ["resolution", "size", "quality", "visualTag"],
+        sortBy: ["resolution", "size", "quality", "visualTag", "durationAsc", "durationDesc"],
         languages: [...Object.keys(REGEX_PATTERNS.languages), "Unknown"],
         visualTags: [...Object.keys(REGEX_PATTERNS.visualTags)],
     };
