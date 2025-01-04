@@ -172,6 +172,17 @@ function formatSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
+function formatDuration(durationMillis) {
+    const seconds = Math.floor(durationMillis / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    const formattedSeconds = seconds % 60;
+    const formattedMinutes = minutes % 60;
+
+    return `${hours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
 function createJsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data, null, 4), {
         headers: HEADERS,
@@ -257,6 +268,9 @@ function createStream(parsedFile, accessToken) {
 
     description += `\n📄 ${parsedFile.name}`;
 
+    if (parsedFile.duration) {
+        description += `\n⏱️ ${formatDuration(parsedFile.duration)}`;
+    }
     const combinedTags = [
         parsedFile.resolution,
         parsedFile.quality,
@@ -375,6 +389,7 @@ function parseFile(file) {
         encode: encode,
         audioTags: audioTags,
         visualTags: visualTags,
+        duration: file.videoMediaMetadata?.durationMillis
     };
 }
 
@@ -809,7 +824,7 @@ async function getStreams(streamRequest) {
         includeItemsFromAllDrives: "true",
         supportsAllDrives: "true",
         pageSize: "1000",
-        fields: "files(id,name,size)",
+        fields: "files(id,name,size,videoMediaMetadata)",
     };
 
     const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
