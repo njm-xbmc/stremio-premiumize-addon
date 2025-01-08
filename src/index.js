@@ -30,7 +30,7 @@ const CONFIG = {
     proxiedPlayback: true,
     driveQueryTerms: {
         episodeFormat: "fullText",
-        movieYear: "name",
+        titleName: "name",
     },
 };
 
@@ -394,14 +394,14 @@ function parseFile(file) {
         id: file.id,
         name: file.name.trim(),
         size: file.size,
-        formattedSize: formatSize(file.size),
+        formattedSize: parseInt(file.size) ? formatSize(parseInt(file.size)) : "Unknown",
         resolution: resolution,
         quality: quality,
         languages: languages,
         encode: encode,
         audioTags: audioTags,
         visualTags: visualTags,
-        duration: file.videoMediaMetadata?.durationMillis,
+        duration: parseInt(file.videoMediaMetadata?.durationMillis) || undefined,
         type: file.mimeType,
         extension: file.fileExtension,
     };
@@ -633,35 +633,12 @@ async function buildSearchQuery(streamRequest) {
 
     query += CONFIG.showAudioFiles ? ` and (mimeType contains 'video/' or mimeType contains 'audio/')` : ` and mimeType contains 'video/'`;
     
-    const nameQuery = name
-        .replace(/[^a-zA-Z0-9\s]/g, "")
-        .split(" ")
-        .map((word) => `name contains '${word}'`)
-        .join(" and ");
-    const nameQueryWithApostrphes = name
-        .replace(/[^a-zA-Z0-9\s']/g, "")
-        .split(" ")
-        .map((word) => `name contains '${word.replace(/'/g, "\\'")}'`)
-        .join(" and ");
-    const combinedNameQuery = name
-        .replace(/[^a-zA-Z0-9\s]/g, "")
-        .split(" ")
-        .join("");
+    const sanitisedName = name.replace(/[^a-zA-Z0-9'\s]/g, "").replace(/'/g, "\\'");
+    const nameWithoutApostrophes = name.replace(/[^a-zA-Z0-9\s]/g, "");
 
-    if (nameQuery === nameQueryWithApostrphes) {
-        query += ` and ((${nameQuery} ) or (name contains '${combinedNameQuery}'))`;
-    } else {
-        query += ` and ((${nameQuery}) or (${nameQueryWithApostrphes}) or (name contains '${combinedNameQuery}'))`;
-    }
+    if (streamRequest.type === "movie") (query += ` and (${CONFIG.driveQueryTerms.titleName} contains '${sanitisedName} ${year}' or ${CONFIG.driveQueryTerms.titleName} contains '${nameWithoutApostrophes} ${year}')`);
+    if (streamRequest.type === "series") (query += ` and (${CONFIG.driveQueryTerms.titleName} contains '${sanitisedName}' or ${CONFIG.driveQueryTerms.titleName} contains '${nameWithoutApostrophes}')`);
 
-    if (streamRequest.type === "movie") {
-        return (
-            query +
-            ` and ${CONFIG.driveQueryTerms.movieYear} contains '${year}'`
-        );
-    }
-
-    // handle query for shows
     const season = streamRequest.season;
     const episode = streamRequest.episode;
     if (!season || !episode) return query;
