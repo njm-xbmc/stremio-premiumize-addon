@@ -11,7 +11,10 @@ If you combine it with some team drives, you have loads of content, all availabl
 ## Features
 
 - Search your Google Drive and shared drives for videos
-- Parses filenames for information accurately using regex and displays it in a appealing format. 
+- Parses filenames for information accurately using regex and displays it in a appealing format.
+- Catalog support - both search and full list on home page
+- Kitsu support.
+- TMDB Meta support if TMDB api key is provided.
 - Easily configurable using the `CONFIG` object at the top of the code. (See [Configuration](#configuration))
     - Change the addon name
     - Change the order of resolutions, qualities, visual tags, and filter them out if unwanted
