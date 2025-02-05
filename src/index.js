@@ -73,11 +73,11 @@ const API_ENDPOINTS = {
 };
 
 const REGEX_PATTERNS = {
-    validStreamRequest: /\/stream\/(movie|series)\/([a-zA-Z0-9%:]+)\.json/,
-    validPlaybackRequest: /\/playback\/([a-zA-Z0-9_-]+)\/(.+)/,
+    validStreamRequest: /\/stream\/(movie|series)\/([a-zA-Z0-9%:\-_]+)\.json/,
+    validPlaybackRequest: /\/playback\/([a-zA-Z0-9%:\-_]+)\/(.+)/,
     validCatalogRequest:
-        /\/catalog\/movie\/([a-zA-Z0-9%:_]+)(\/search=(.+))?\.json/,
-    validMetaRequest: /\/meta\/(movie)\/([a-zA-Z0-9%:_]+)\.json/,
+        /\/catalog\/movie\/([a-zA-Z0-9%:\-_]+)(\/search=(.+))?\.json/,
+    validMetaRequest: /\/meta\/(movie)\/([a-zA-Z0-9%:\-_]+)\.json/,
     resolutions: {
         "2160p": /(?<![^ [(_\-.])(4k|2160p|uhd)(?=[ \)\]_.-]|$)/i,
         "1080p": /(?<![^ [(_\-.])(1080p|fhd)(?=[ \)\]_.-]|$)/i,
