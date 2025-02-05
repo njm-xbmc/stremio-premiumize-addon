@@ -777,6 +777,7 @@ async function fetchFile(fileId, accessToken) {
 }
 
 function buildBaseSearchQuery(query) {
+    query = query.replace(/'/g, "\\'");
     let q = `name contains '${query}' and trashed=false and not name contains 'trailer' and not name contains 'sample'`;
 
     if (CONFIG.showAudioFiles) {
@@ -785,6 +786,7 @@ function buildBaseSearchQuery(query) {
         q += ` and mimeType contains 'video/'`;
     }
 
+    console.log({ message: "Built base search query", query: q });
     return q;
 }
 
@@ -1033,7 +1035,7 @@ async function handleRequest(request) {
                 }
 
                 const queryParams = {
-                    q: buildBaseSearchQuery(searchTerm),
+                    q: buildBaseSearchQuery(decodeURIComponent(searchTerm)),
                     corpora: "allDrives",
                     includeItemsFromAllDrives: "true",
                     supportsAllDrives: "true",
