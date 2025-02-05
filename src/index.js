@@ -28,6 +28,7 @@ const CONFIG = {
     addonName: "GDrive",
     prioritiseLanguage: null,
     proxiedPlayback: true,
+    strictTitleCheck: false,
     tmdbApiKey: null,
     enableSearchCatalog: true,
     enableVideoCatalog: true,
@@ -508,7 +509,7 @@ function isConfigValid() {
 }
 
 async function getMetadata(type, fullId) {
-    let id = fullId
+    let id = fullId;
 
     if (id.startsWith("kitsu")) {
         id = id.split(":")[0] + ":" + id.split(":")[1]; // Remove the :1 at the end
@@ -526,12 +527,12 @@ async function getMetadata(type, fullId) {
         });
 
         return null;
-
     }
+    id = id.split(":")[0];
 
     if (CONFIG.tmdbApiKey) {
         try {
-            meta = await getTmdbMeta(type, id);
+            const meta = await getTmdbMeta(type, id);
             if (meta) {
                 console.log({
                     message: "Successfully retrieved metadata from TMDb",
@@ -547,7 +548,7 @@ async function getMetadata(type, fullId) {
         }
     }
     try {
-        meta = await getCinemetaMeta(type, id);
+        const meta = await getCinemetaMeta(type, id);
         if (meta) {
             console.log({
                 message: "Successfully retrieved metadata from Cinemeta",
@@ -563,7 +564,7 @@ async function getMetadata(type, fullId) {
     }
 
     try {
-        meta = await getImdbSuggestionMeta(id);
+        const meta = await getImdbSuggestionMeta(id);
         if (meta) {
             console.log({
                 message:
@@ -586,14 +587,11 @@ async function getMetadata(type, fullId) {
     return null;
 }
 
-
 async function getKitsuMeta(type, id) {
     console.log({ message: "Fetching metadata from Kitsu", type, id });
     const url = `https://anime-kitsu.strem.fun/meta/${type}/${id}.json`;
     console.log({ url });
-    const response = await fetch(
-        url
-    );
+    const response = await fetch(url);
     if (!response.ok) {
         let err = await response.text();
         throw new Error(err);
@@ -631,14 +629,18 @@ async function getTmdbMeta(type, id) {
     if (!result) {
         throw new Error("No results found in response");
     }
+    console.log({ message: "Got data from TMDB", result });
 
-    if (!result?.title || !result?.release_date) {
+    if (
+        (!result.name && !result.title) ||
+        (!result.release_date && !result.first_air_date)
+    ) {
         throw new Error("Either title or release date not found in result");
     }
 
     return {
-        name: result.title,
-        year: result.release_date.split("-")[0],
+        name: result.name || result.title,
+        year: (result.release_date || result.first_air_date).split("-")[0],
     };
 }
 
@@ -746,18 +748,17 @@ async function fetchFiles(fetchUrl, accessToken) {
 
 async function fetchFile(fileId, accessToken) {
     try {
-        const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILE.replace("{fileId}", fileId));
+        const fetchUrl = new URL(
+            API_ENDPOINTS.DRIVE_FETCH_FILE.replace("{fileId}", fileId)
+        );
         const searchParams = {
             supportsAllDrives: true,
             fields: "id,name,mimeType,size,videoMediaMetadata,fileExtension",
-        }
+        };
         fetchUrl.search = new URLSearchParams(searchParams).toString();
-        const response = await fetch(
-            fetchUrl.toString(),
-            {
-                headers: { Authorization: `Bearer ${accessToken}` },
-            }
-        );
+        const response = await fetch(fetchUrl.toString(), {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
 
         if (!response.ok) {
             let err = await response.text();
@@ -869,7 +870,9 @@ async function handleRequest(request) {
         if (url.pathname === "/manifest.json") {
             const manifest = MANIFEST;
             manifest.catalogs = [];
-            manifest.resources = [{ name: "stream", types: ["movie", "series", "anime"] }];
+            manifest.resources = [
+                { name: "stream", types: ["movie", "series", "anime"] },
+            ];
             if (CONFIG.enableSearchCatalog) {
                 manifest.catalogs.push({
                     type: "movie",
@@ -960,7 +963,7 @@ async function handleRequest(request) {
                 });
                 return null;
             }
-            console.log({message: "Meta request", fileId, gdriveId});
+            console.log({ message: "Meta request", fileId, gdriveId });
             const file = await fetchFile(gdriveId, accessToken);
             if (!file) {
                 console.error({
@@ -969,7 +972,7 @@ async function handleRequest(request) {
                 });
                 return null;
             }
-            console.log({message: "File fetched", file});
+            console.log({ message: "File fetched", file });
             const parsedFile = parseFile(file);
             return createJsonResponse({
                 meta: {
@@ -1071,10 +1074,16 @@ async function handleRequest(request) {
         }
 
         const type = streamMatch[1];
-        
+
         const fullId = streamMatch[2];
         let [season, episode] = fullId.split(":").slice(-2);
-        console.log({ message: "Stream request", type, fullId, season, episode });
+        console.log({
+            message: "Stream request",
+            type,
+            fullId,
+            season,
+            episode,
+        });
         if (fullId.startsWith("kitsu")) {
             season = 1;
         }
@@ -1103,7 +1112,6 @@ async function handleRequest(request) {
             return createJsonResponse({
                 streams: [createStream(parsedFile, accessToken)],
             });
-
         }
 
         const metadata = await getMetadata(type, fullId);
@@ -1217,7 +1225,23 @@ async function getStreams(streamRequest) {
         files: results.files,
     });
 
-    const parsedFiles = parseAndFilterFiles(results.files);
+    const nameRegex = new RegExp(
+        "(?<![^ [(_\\-.])(" +
+            streamRequest.metadata.name
+                .replace(/[^\w\s]/g, "[^\\w\\s]?")
+                .replace(/ /g, "[ .\\-_]?") +
+            (streamRequest.type === "movie"
+                ? `[ .\\-_]?${streamRequest.metadata.year}`
+                : "") +
+            ")(?=[ \\)\\]_.-]|$)",
+        "i"
+    );
+    console.log({ message: "Name regex", nameRegex });
+    const parsedFiles = parseAndFilterFiles(
+        CONFIG.strictTitleCheck
+            ? results.files.filter((file) => nameRegex.test(file.name))
+            : results.files
+    );
 
     console.log(
         results.files.length - parsedFiles.length === 0
