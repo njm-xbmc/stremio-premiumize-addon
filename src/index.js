@@ -985,13 +985,15 @@ async function handleRequest(request) {
             posterShape: "landscape",
             background: thumbnail,
             poster: thumbnail,
-            description: `Size: ${formatSize(size)} Created: ${new Date(
-                createdTime) .toLocaleDateString("en-GB", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            })}`,
-
+            description: `Size: ${formatSize(size)}` + (createdTime 
+                ?  ` | Created: ${new Date(
+                    createdTime).toLocaleDateString("en-GB", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                })}`
+                : ""
+            ),
             type: "movie",
         });
         
@@ -1053,7 +1055,7 @@ async function handleRequest(request) {
                     supportsAllDrives: "true",
                     pageSize: "1000",
                     orderBy: "createdTime desc",
-                    fields: "nextPageToken,incompleteSearch,files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,iconLink)",
+                    fields: "nextPageToken,incompleteSearch,files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,createdTime)",
                 };
 
                 const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
@@ -1069,7 +1071,7 @@ async function handleRequest(request) {
 
                 const results = await fetchFiles(fetchUrl, accessToken);
                 const metas = results.files.map((file) => 
-                    createMetaObject(file.id, file.name, file.size, file.thumbnailLink, file.iconLink)
+                    createMetaObject(file.id, file.name, file.size, file.thumbnailLink, file.createdTime)
                 );
                 console.log({ message: "Catalog response", numMetas: metas.length });
                 return createJsonResponse({ metas });
@@ -1086,7 +1088,7 @@ async function handleRequest(request) {
                     includeItemsFromAllDrives: "true",
                     supportsAllDrives: "true",
                     pageSize: "1000",
-                    fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,iconLink)",
+                    fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,createdTime)",
                 };
 
                 const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
@@ -1111,7 +1113,7 @@ async function handleRequest(request) {
                     file.name,
                     file.size,
                     file.thumbnailLink,
-                    file.iconLink
+                    file.createdTime
                 ));
 
                 return createJsonResponse({ metas });
