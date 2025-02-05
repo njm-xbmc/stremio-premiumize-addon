@@ -32,7 +32,7 @@ const CONFIG = {
     tmdbApiKey: null,
     enableSearchCatalog: true,
     enableVideoCatalog: true,
-    maxFilesToFetch: 3000,
+    maxFilesToFetch: 1000,
     driveQueryTerms: {
         episodeFormat: "fullText",
         titleName: "name",
