@@ -734,8 +734,27 @@ async function fetchFiles(fetchUrl, accessToken) {
             let err = await response.text();
             throw new Error(err);
         }
+        // handle paginated results
+        console.log({ nextPage: response.nextPageToken });
 
         const results = await response.json();
+        while (results.nextPageToken) {
+            console.log({ message: "Fetching next page of results" });
+            fetchUrl.searchParams.set("pageToken", results.nextPageToken);
+            const nextPageResponse = await fetch(fetchUrl.toString(), {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+
+            if (!nextPageResponse.ok) {
+                let err = await nextPageResponse.text();
+                throw new Error(err);
+            }
+
+            const nextPageResults = await nextPageResponse.json();
+            results.files = [...results.files, ...nextPageResults.files];
+            results.nextPageToken = nextPageResults.nextPageToken;
+        }
+
         return results;
     } catch (error) {
         console.error({
@@ -753,7 +772,7 @@ async function fetchFile(fileId, accessToken) {
         );
         const searchParams = {
             supportsAllDrives: true,
-            fields: "id,name,mimeType,size,videoMediaMetadata,fileExtension",
+            fields: "id,name,mimeType,size,videoMediaMetadata,fileExtension,createdTime, thumbnailLink, iconLink",
         };
         fetchUrl.search = new URLSearchParams(searchParams).toString();
         const response = await fetch(fetchUrl.toString(), {
@@ -947,6 +966,16 @@ async function handleRequest(request) {
             return createProxiedStreamResponse(fileId, filename, request);
         }
 
+        const createMetaObject = (id, name, size, thumbnail, icon) => ({
+            id: `gdrive:${id}`,
+            name,
+            posterShape: "landscape",
+            background: thumbnail,
+            poster: thumbnail,
+            description: `Name: ${name}\nSize: ${formatSize(size)}`,
+            type: "movie",
+        });
+        
         if (metaMatch) {
             const fileId = metaMatch[2];
             if (!fileId) {
@@ -977,12 +1006,13 @@ async function handleRequest(request) {
             console.log({ message: "File fetched", file });
             const parsedFile = parseFile(file);
             return createJsonResponse({
-                meta: {
-                    id: fileId,
-                    name: parsedFile.name,
-                    description: `Name: ${parsedFile.name}\nSize: ${parsedFile.formattedSize}`,
-                    type: "movie",
-                },
+                meta: createMetaObject(
+                    parsedFile.id,
+                    parsedFile.name,
+                    parsedFile.size,
+                    file.thumbnailLink,
+                    file.iconLink
+                ),
             });
         }
 
@@ -1002,7 +1032,7 @@ async function handleRequest(request) {
                     includeItemsFromAllDrives: "true",
                     supportsAllDrives: "true",
                     pageSize: "1000",
-                    fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension)",
+                    fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,iconLink)",
                 };
 
                 const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
@@ -1017,15 +1047,10 @@ async function handleRequest(request) {
                 }
 
                 const results = await fetchFiles(fetchUrl, accessToken);
-                const metas = results.files.map((file) => ({
-                    id: `gdrive:${file.id}`,
-                    name: file.name,
-                    description: `Name: ${file.name}\nSize: ${formatSize(
-                        file.size
-                    )}`,
-                    type: "movie",
-                }));
-
+                const metas = results.files.map((file) => 
+                    createMetaObject(file.id, file.name, file.size, file.thumbnailLink, file.iconLink)
+                );
+                console.log({ message: "Catalog response", numMetas: metas.length });
                 return createJsonResponse({ metas });
             }
 
@@ -1040,7 +1065,7 @@ async function handleRequest(request) {
                     includeItemsFromAllDrives: "true",
                     supportsAllDrives: "true",
                     pageSize: "1000",
-                    fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension)",
+                    fields: "files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,iconLink)",
                 };
 
                 const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
@@ -1060,14 +1085,13 @@ async function handleRequest(request) {
                     return createJsonResponse({ metas: [] });
                 }
 
-                const metas = results.files.map((file) => ({
-                    id: `gdrive:${file.id}`,
-                    name: file.name,
-                    description: `Name: ${file.name}\nSize: ${formatSize(
-                        file.size
-                    )}`,
-                    type: "movie",
-                }));
+                const metas = results.files.map((file) => createMetaObject(
+                    file.id,
+                    file.name,
+                    file.size,
+                    file.thumbnailLink,
+                    file.iconLink
+                ));
 
                 return createJsonResponse({ metas });
             }
