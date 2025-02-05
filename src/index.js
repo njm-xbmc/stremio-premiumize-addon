@@ -32,7 +32,7 @@ const CONFIG = {
     tmdbApiKey: null,
     enableSearchCatalog: true,
     enableVideoCatalog: true,
-    maxFilesToFetch: 15000,
+    maxFilesToFetch: 3000,
     driveQueryTerms: {
         episodeFormat: "fullText",
         titleName: "name",
@@ -736,10 +736,11 @@ async function fetchFiles(fetchUrl, accessToken) {
             throw new Error(err);
         }
         // handle paginated results
-
+        
         const results = await response.json();
+        console.log({message: "Initial search yielded results", numItems: results.files.length});
         while (results.nextPageToken) {
-            console.log({ message: "Fetching next page of results", nextPageToken: results.nextPageToken });
+            
             fetchUrl.searchParams.set("pageToken", results.nextPageToken);
             const nextPageResponse = await fetch(fetchUrl.toString(), {
                 headers: { Authorization: `Bearer ${accessToken}` },
@@ -752,13 +753,17 @@ async function fetchFiles(fetchUrl, accessToken) {
 
             const nextPageResults = await nextPageResponse.json();
             results.files = [...results.files, ...nextPageResults.files];
-            console.log({ message: "Fetched next page of results", nextPageToken: nextPageResults.nextPageToken });
             results.nextPageToken = nextPageResults.nextPageToken;
+            console.log({message: "Searched next page", nextPageResults: nextPageResults.files.length, nextPageToken: nextPageResults.nextPageToken, totalResults: results.files.length});
             if (results.files.length >= CONFIG.maxFilesToFetch) {
                 console.log({
                     message: "Reached maximum number of files",
                     files: results.files.length,
                 });
+                break;
+            }
+            if (nextPageResults.files.length === 0) {
+                console.log({message: "No more files to fetch"});
                 break;
             }
         }
@@ -780,7 +785,7 @@ async function fetchFile(fileId, accessToken) {
         );
         const searchParams = {
             supportsAllDrives: true,
-            fields: "id,name,mimeType,size,videoMediaMetadata,fileExtension,createdTime, thumbnailLink, iconLink",
+            fields: "id,name,mimeType,size,videoMediaMetadata,fileExtension,createdTime,thumbnailLink,iconLink",
         };
         fetchUrl.search = new URLSearchParams(searchParams).toString();
         const response = await fetch(fetchUrl.toString(), {
@@ -974,13 +979,19 @@ async function handleRequest(request) {
             return createProxiedStreamResponse(fileId, filename, request);
         }
 
-        const createMetaObject = (id, name, size, thumbnail, icon) => ({
+        const createMetaObject = (id, name, size, thumbnail, createdTime) => ({
             id: `gdrive:${id}`,
             name,
             posterShape: "landscape",
             background: thumbnail,
             poster: thumbnail,
-            description: `Name: ${name}\nSize: ${formatSize(size)}`,
+            description: `Size: ${formatSize(size)} Created: ${new Date(
+                createdTime) .toLocaleDateString("en-GB", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            })}`,
+
             type: "movie",
         });
         
@@ -1019,7 +1030,8 @@ async function handleRequest(request) {
                     parsedFile.name,
                     parsedFile.size,
                     file.thumbnailLink,
-                    file.iconLink
+                    file.createdTime
+
                 ),
             });
         }
@@ -1040,7 +1052,8 @@ async function handleRequest(request) {
                     includeItemsFromAllDrives: "true",
                     supportsAllDrives: "true",
                     pageSize: "1000",
-                    fields: "nextPageToken,files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,iconLink)",
+                    orderBy: "createdTime desc",
+                    fields: "nextPageToken,incompleteSearch,files(id,name,size,videoMediaMetadata,mimeType,fileExtension,thumbnailLink,iconLink)",
                 };
 
                 const fetchUrl = new URL(API_ENDPOINTS.DRIVE_FETCH_FILES);
