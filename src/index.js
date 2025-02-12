@@ -71,6 +71,7 @@ const API_ENDPOINTS = {
     IMDB_SUGGEST: "https://v3.sg.media-imdb.com/suggestion/a/{id}.json",
     TMDB_FIND:
         "https://api.themoviedb.org/3/find/{id}?api_key={apiKey}&external_source=imdb_id",
+    TMDB_DETAILS: "https://api.themoviedb.org/3/{type}/{id}?api_key={apiKey}",
 };
 
 const REGEX_PATTERNS = {
@@ -529,11 +530,11 @@ async function getMetadata(type, fullId) {
 
         return null;
     }
-    id = id.split(":")[0];
+
 
     if (CONFIG.tmdbApiKey) {
         try {
-            const meta = await getTmdbMeta(type, id);
+            const meta = await getTmdbMeta(type, fullId);
             if (meta) {
                 console.log({
                     message: "Successfully retrieved metadata from TMDb",
@@ -611,22 +612,50 @@ async function getKitsuMeta(type, id) {
 }
 
 async function getTmdbMeta(type, id) {
-    const response = await fetch(
-        API_ENDPOINTS.TMDB_FIND.replace("{id}", id).replace(
-            "{apiKey}",
-            CONFIG.tmdbApiKey
-        )
-    );
-    if (!response.ok) {
-        let err = await response.text();
-        throw new Error(`${response.status} - ${response.statusText}: ${err}`);
-    }
-    const data = await response.json();
-    if (!data?.movie_results && !data?.tv_results) {
-        throw new Error("No results found in response");
-    }
+    let response;
+    let result;
+    if (id.startsWith("tmdb")) {
+        if (!CONFIG.tmdbApiKey) {
+            throw new Error("TMDB ID detected but no API key provided");
+        }
+        const url = API_ENDPOINTS.TMDB_DETAILS.replace("{type}", type === "movie" ? "movie" : "tv")
+            .replace("{id}", id.split(":")[1])
+            .replace("{apiKey}", CONFIG.tmdbApiKey);
+        console.log({
+            message: "Fetching data from TMDB with TMDB ID",
+            url,
+        });
+        response = await fetch(url);
 
-    const result = data.movie_results[0] || data.tv_results[0];
+        if (!response.ok) {
+            let err = await response.text();
+            throw new Error(`${response.status} - ${response.statusText}: ${err}`);
+        }
+
+        result = await response.json();
+
+    } else {
+        const url = API_ENDPOINTS.TMDB_FIND.replace("{id}", id.split(":")[0])
+            .replace("{apiKey}", CONFIG.tmdbApiKey)
+        console.log({
+            message: "Fetching data from TMDB with external source",
+            url,
+        })
+        response = await fetch(url);
+
+        if (!response.ok) {
+            let err = await response.text();
+            throw new Error(`${response.status} - ${response.statusText}: ${err}`);
+        }
+        const data = await response.json();
+        if (!data?.movie_results && !data?.tv_results) {
+            throw new Error("No results found in response");
+        }
+    
+        result = data.movie_results[0] || data.tv_results[0];
+
+    }
+    
     if (!result) {
         throw new Error("No results found in response");
     }
@@ -646,6 +675,7 @@ async function getTmdbMeta(type, id) {
 }
 
 async function getCinemetaMeta(type, id) {
+    id = id.split(":")[0];
     const response = await fetch(
         API_ENDPOINTS.CINEMETA.replace("{type}", type).replace("{id}", id)
     );
@@ -667,6 +697,7 @@ async function getCinemetaMeta(type, id) {
 }
 
 async function getImdbSuggestionMeta(id) {
+    id = id.split(":")[0];
     const response = await fetch(
         API_ENDPOINTS.IMDB_SUGGEST.replace("{id}", id)
     );
@@ -736,11 +767,13 @@ async function fetchFiles(fetchUrl, accessToken) {
             throw new Error(err);
         }
         // handle paginated results
-        
+
         const results = await response.json();
-        console.log({message: "Initial search yielded results", numItems: results.files.length});
+        console.log({
+            message: "Initial search yielded results",
+            numItems: results.files.length,
+        });
         while (results.nextPageToken) {
-            
             fetchUrl.searchParams.set("pageToken", results.nextPageToken);
             const nextPageResponse = await fetch(fetchUrl.toString(), {
                 headers: { Authorization: `Bearer ${accessToken}` },
@@ -754,7 +787,12 @@ async function fetchFiles(fetchUrl, accessToken) {
             const nextPageResults = await nextPageResponse.json();
             results.files = [...results.files, ...nextPageResults.files];
             results.nextPageToken = nextPageResults.nextPageToken;
-            console.log({message: "Searched next page", nextPageResults: nextPageResults.files.length, nextPageToken: nextPageResults.nextPageToken, totalResults: results.files.length});
+            console.log({
+                message: "Searched next page",
+                nextPageResults: nextPageResults.files.length,
+                nextPageToken: nextPageResults.nextPageToken,
+                totalResults: results.files.length,
+            });
             if (results.files.length >= CONFIG.maxFilesToFetch) {
                 console.log({
                     message: "Reached maximum number of files",
@@ -763,7 +801,7 @@ async function fetchFiles(fetchUrl, accessToken) {
                 break;
             }
             if (nextPageResults.files.length === 0) {
-                console.log({message: "No more files to fetch"});
+                console.log({ message: "No more files to fetch" });
                 break;
             }
         }
@@ -985,18 +1023,21 @@ async function handleRequest(request) {
             posterShape: "landscape",
             background: thumbnail,
             poster: thumbnail,
-            description: `Size: ${formatSize(size)}` + (createdTime 
-                ?  ` | Created: ${new Date(
-                    createdTime).toLocaleDateString("en-GB", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                })}`
-                : ""
-            ),
+            description:
+                `Size: ${formatSize(size)}` +
+                (createdTime
+                    ? ` | Created: ${new Date(createdTime).toLocaleDateString(
+                          "en-GB",
+                          {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                          }
+                      )}`
+                    : ""),
             type: "movie",
         });
-        
+
         if (metaMatch) {
             const fileId = metaMatch[2];
             if (!fileId) {
@@ -1033,7 +1074,6 @@ async function handleRequest(request) {
                     parsedFile.size,
                     file.thumbnailLink,
                     file.createdTime
-
                 ),
             });
         }
@@ -1070,10 +1110,19 @@ async function handleRequest(request) {
                 }
 
                 const results = await fetchFiles(fetchUrl, accessToken);
-                const metas = results.files.map((file) => 
-                    createMetaObject(file.id, file.name, file.size, file.thumbnailLink, file.createdTime)
+                const metas = results.files.map((file) =>
+                    createMetaObject(
+                        file.id,
+                        file.name,
+                        file.size,
+                        file.thumbnailLink,
+                        file.createdTime
+                    )
                 );
-                console.log({ message: "Catalog response", numMetas: metas.length });
+                console.log({
+                    message: "Catalog response",
+                    numMetas: metas.length,
+                });
                 return createJsonResponse({ metas });
             }
 
@@ -1108,13 +1157,15 @@ async function handleRequest(request) {
                     return createJsonResponse({ metas: [] });
                 }
 
-                const metas = results.files.map((file) => createMetaObject(
-                    file.id,
-                    file.name,
-                    file.size,
-                    file.thumbnailLink,
-                    file.createdTime
-                ));
+                const metas = results.files.map((file) =>
+                    createMetaObject(
+                        file.id,
+                        file.name,
+                        file.size,
+                        file.thumbnailLink,
+                        file.createdTime
+                    )
+                );
 
                 return createJsonResponse({ metas });
             }
