@@ -28,7 +28,7 @@ const SAMPLE_ITEMS = {
         {
             id: "premiumize:movie1",
             type: "premiumize",
-            name: "How to Train Your Dragon",
+            name: "Sample Movie",
             poster: "https://via.placeholder.com/200x300?text=Movie+1",
             description: "Película de prueba"
         }
