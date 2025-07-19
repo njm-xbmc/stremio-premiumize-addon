@@ -38,7 +38,7 @@ const REGEX_PATTERNS = {
     validRequests: {
         Stream: /^\/stream\/(movie|series)\/([a-zA-Z0-9:%\-\._]+)\.json$/,
         Playback: /\/playback\/([a-zA-Z0-9%:\-_]+)\/(.+)/,
-        Catalog: /^\/catalog\/premiumize\/(premiumize-\w+)\.json$/,
+        Catalog: new RegExp(`^/catalog/${CONFIG.addonName.replace(/ /g, '(?: |%20)')}/(premiumize-\\w+)\\.json$`),
         Meta: /^\/meta\/(movie|series)\/premiumize-([^\.]+)\.json$/,
     },
 };
