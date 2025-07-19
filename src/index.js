@@ -249,7 +249,7 @@ async function getStream(id) {
             details = json.content[0];
         }
     }
-    if (!details || !details.stream_link || !details.directlink || !details.link) {
+    if (!details) {
         return [createErrorStream("[ NOT FOUND ]")];
     }
     return [{
