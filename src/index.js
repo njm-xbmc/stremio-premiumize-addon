@@ -1,5 +1,5 @@
 const CONFIG = {
-    addonName: "Premiumize Files",
+    addonName: "My Files",
     premiumizeFolderId: "",
     premiumizeApiKey: "",
     tmdbApiKey: "",
@@ -348,7 +348,6 @@ async function handleRequest(request) {
 
 export default {
     async fetch(request, env, ctx) {
-        CONFIG.addonName = CONFIG.addonName || env.ADDON_NAME;
         CONFIG.premiumizeFolderId = CONFIG.premiumizeFolderId || env.PREMIUMIZE_FOLDER_ID;
         CONFIG.premiumizeApiKey = CONFIG.premiumizeApiKey || env.PREMIUMIZE_API_KEY;
         CONFIG.tmdbApiKey = CONFIG.tmdbApiKey || env.TMDB_API_KEY;
