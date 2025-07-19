@@ -249,13 +249,13 @@ async function getStream(id) {
             details = json.content[0];
         }
     }
-    if (!details || !details.stream_link || !details.direct_link) {
+    if (!details || !details.stream_link || !details.directlink || !details.link) {
         return [createErrorStream("[ NOT FOUND ]")];
     }
     return [{
         name: MANIFEST.name,
         title: "[ PLAY ]",
-        url: details.stream_link || details.direct_link,
+        url: details.stream_link || details.directlink || details.link,
     }];
 }
 
