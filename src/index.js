@@ -1,5 +1,5 @@
 const CONFIG = {
-    addonName: "My Files",
+    addonName: "Premiumize Files",
     premiumizeFolderId: "",
     premiumizeApiKey: "",
     tmdbApiKey: "",
@@ -275,7 +275,7 @@ async function handleRequest(request) {
             const rootFolders = await folderList(CONFIG.premiumizeFolderId);
 
             MANIFEST.catalogs = rootFolders.filter(f => f.type === "folder").map(folder => ({
-                type: "premiumize",
+                type: CONFIG.addonName,
                 id: `premiumize-${folder.name.toLowerCase()}`,
                 name: folder.name
             }));
