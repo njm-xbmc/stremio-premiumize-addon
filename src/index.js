@@ -9,7 +9,7 @@ const CONFIG = {
 const MANIFEST = {
     id: "stremio.premiumize.worker",
     version: "1.0.0",
-    name: "Premiumize Files",
+    name: CONFIG.addonName,
     description: "Stream your files from Premiumize within Stremio!",
     catalogs: [],
     resources: [
@@ -253,7 +253,7 @@ async function getStream(type, id) {
 
     return [{
         name: MANIFEST.name,
-        title: details.name || "",
+        title: "[PLAY]",
         url: details.stream_link
     }];
 }
