@@ -39,6 +39,14 @@ const REGEX_PATTERNS = {
     Meta: /^\/meta\/(movie|series)\/premiumize-([^\.]+)\.json$/,
 };
 
+function formatSize(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1000;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + sizes[i];
+}
+
 function createJsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data, null, 4), {
         headers: HEADERS,
@@ -71,6 +79,19 @@ async function itemDetails(itemId) {
     const res = await fetch(url);
     const json = await res.json();
     return json || {};
+}
+
+async function folderSearch(query) {
+    const url = replaceParams(API_ENDPOINTS.PREMIUMIZE_FOLDER_SEARCH, {
+        apiKey: CONFIG.premiumizeApiKey,
+        query: query
+    });
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.status === "success" && json.content && json.content.length > 0) {
+        return json.content[0];
+    }
+    return null;
 }
 
 function extractIdsFromName(name) {
@@ -215,46 +236,26 @@ async function getStream(id) {
         const [imdbId, season, episode] = id.split(":");
         const sxxexx = `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`;
         const query = `${sxxexx} [${imdbId}`;
-        const url = replaceParams(API_ENDPOINTS.PREMIUMIZE_FOLDER_SEARCH, {
-            apiKey: CONFIG.premiumizeApiKey,
-            query: query
-        });
-        const res = await fetch(url);
-        const json = await res.json();
-        if (json.status === "success" && json.content && json.content.length > 0) {
-            details = json.content[0];
-        }
+        details = await folderSearch(query);
     }
     else if (id.startsWith("tt")) {
         const query = `[${id}`;
-        const url = replaceParams(API_ENDPOINTS.PREMIUMIZE_FOLDER_SEARCH, {
-            apiKey: CONFIG.premiumizeApiKey,
-            query: query
-        });
-        const res = await fetch(url);
-        const json = await res.json();
-        if (json.status === "success" && json.content && json.content.length > 0) {
-            details = json.content[0];
-        }
+        details = await folderSearch(query);
     }
     else {
-        const query = id;
-        const url = replaceParams(API_ENDPOINTS.PREMIUMIZE_FOLDER_SEARCH, {
-            apiKey: CONFIG.premiumizeApiKey,
-            query: query
-        });
-        const res = await fetch(url);
-        const json = await res.json();
-        if (json.status === "success" && json.content && json.content.length > 0) {
-            details = json.content[0];
-        }
+        details = await folderSearch(id);
     }
     if (!details) {
-        return [createErrorStream("[ NOT FOUND ]")];
+        return [createErrorStream("[NOT FOUND]")];
     }
+
+    const extMatch = details.name && details.name.match(/\.(\w+)$/i);
+    const ext = extMatch ? extMatch[1].toUpperCase() : "";
+    const sizeStr = details.size ? formatSize(details.size) : "";
+
     return [{
         name: MANIFEST.name,
-        title: "[ PLAY ]",
+        title: `▶️ PLAY [${ext}|${sizeStr}]`,
         url: details.stream_link || details.link || details.directlink,
     }];
 }
