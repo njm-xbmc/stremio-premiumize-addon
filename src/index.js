@@ -255,7 +255,7 @@ async function getStream(id) {
     return [{
         name: MANIFEST.name,
         title: "[ PLAY ]",
-        url: details.stream_link || details.directlink || details.link,
+        url: details.stream_link || details.link || details.directlink,
     }];
 }
 
