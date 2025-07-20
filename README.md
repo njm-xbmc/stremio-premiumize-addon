@@ -1,45 +1,104 @@
-# Stremio Premiumize Files Addon 
+# Stremio Premiumize Files Addon
 
-This is a simple addon for Stremio that allows you to watch videos from your Premiumize Files.
+![showcase](/images/showcase.jpg)
 
-It searches your entire Premiumize Files and presents them in Stremio.
+This addon lets you connect your [Premiumize](https://www.premiumize.me/) files and watch them directly in [Stremio](https://www.stremio.com/). You can choose a specific folder to use as your library, or use your Premiumize root folder by default.
+
+The addon automatically organizes your content into Stremio catalogs:
+- **Movie Catalog:** If a folder contains mostly video files, it is shown as a movie catalog.
+- **Series Catalog:** If a folder contains mostly subfolders, it is shown as a series catalog. Series episodes must be named with the format `SXXEXX` (for example, `S01E02`).
+
+You can also integrate your files with TMDB or AIOLists catalogs by naming your files or folders like this:
+- For movies: `NAME [IMDBID-TMDBID]`
+- For series episodes: `NAME SXXEXX [IMDBID-TMDBID]`
+
+Optionally, you can add an API key from [Rating Poster Database (RPDB)](https://ratingposterdb.com/) to show posters in your catalogs.
+
+*This Addon is inspired by [Viren070's GDrive Addon](https://github.com/Viren070/stremio-gdrive-addon)*
 
 ## Features
 
-- Search your Premiumize Files for videos
-- Parses filenames for information accurately using regex and displays it in a appealing format.
-- Catalog support - both search and full list on home page
-- Kitsu support.
-- TMDB Meta support if TMDB api key is provided.
-- Easily configurable using the `CONFIG` object at the top of the code. (See [Configuration](#configuration))
-    - Change the order of resolutions, qualities, visual tags, and filter them out if unwanted
-    - Change the sorting criteria (resolution, quality, size, visual tags)
-    - Prioritise specific languages and have them show up first in the results
-- Only requires a single deployment with one file, making it easy to deploy and make changes. 
+- Browse and stream your Premiumize files in Stremio.
+- Choose any folder as your library root.
+- Automatic detection of movies and series based on folder structure.
+- Integration with TMDB and AIOLists catalogs by naming convention.
+- Optional poster images using RPDB API key.
+- Simple deployment as a Cloudflare Worker.
+
 
 ## Deployment
 
 This addon is designed to be deployed as a worker on Cloudflare Workers.
 
-Here is a guide to deploying the original GDrive addon, taken from Viren070's site: [Viren070's guides](https://guides.viren070.me/stremio/addons/stremio-gdrive). Ignoring the Google Cloud section, the rest of the process is almost the same. 
+### 1. Create a GitHub Account
 
-## Configuration 
+If you don't have one, go to [github.com](https://github.com/) and sign up for a free account.
 
-Although you may modify the code as you wish, I have supplied a `CONFIG` object at the top of the code after `CREDENTIALS` that allows you to easily 
-configure some aspects of the addon.
+### 2. Copy the Code to your account
 
-> [!NOTE]
-> 
-> Unless stated otherwise, all values are case sensitive
+- Go to the project page: [https://github.com/acaballero30/stremio-premiumize-addon](https://github.com/acaballero30/stremio-premiumize-addon)
+- Click the **Fork** button at the top right.  
+  This will create a copy of the project in your own GitHub account.
 
-This table explains the configuration options:
+### 3. Create a Cloudflare Account
 
-|                  Name                 	|        Type        	| Values                                                                                                                                           	| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 	|
-|:-------------------------------------:	|:------------------:	|--------------------------------------------------------------------------------------------------------------------------------------------------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
-|              `resolution`             	|     `String[]`     	| `"2160p"`, `"1080p"`, `"720p"`, `"480p"`, `"Unknown"`                                                                                            	| This setting allows you to configure which resolutions are shown in your results. You may also change the order of this to change the order that the resolutions would show in the addon (if you sort by resolutions)<br><br>You can remove certain resolutions to not have them show up in your results. The Unknown resolution occurs when the resolution could not be determined from the filename.<br><br>You cannot add new resolutions to this list unless you also add the corresponding regex in the `REGEX_PATTERNS` object.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       	|
-|              `qualities`              	|     `String[]`     	| `"BluRay REMUX"`, `"BluRay"`, `"WEB-DL"`, `"WEBRip"`, `"HDRip"`, `"HC HD-Rip"`, `"DVDRip"`, `"HDTV"`, `"CAM"`, `"TS"`, `"TC"`, `"SCR"`, `"CAM"`  	| This setting allows you to configure which qualities are shown in your results. You may also change the order of this list to change the priority of them when sorting by quality. (e.g. if you put CAM/TS at the top of the list and sorted by quality, then CAM/TS results would appear higher than other qualities)<br><br>Remove qualities from the list to remove them from your results. The Unknown quality occurs when one of the existing qualities could not be found in the filename.<br><br>You cannot add new qualities to this list unless you also add the corresponding regex in the `REGEX_PATTERNS` object.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               	|
-|              `visualTags`             	|     `String[]`     	| `"HDR10+"`, `"HDR10"`, `"HDR"`, `"DV"`, `"IMAX"`, `"AI"`                                                                                         	| This setting allows you to configure which visualTags are shown in your results. You can also change the order of this to change the priority of each visual tag when sorting by `visualTag` (e.g. If you were sorting by visualTag and moved IMAX to the front, and removed AI, then any results with the AI tag will be removed and any results with the IMAX tag will be pushed to the front)<br><br>You cannot add new visual tags to this list unless you also add the corresponding regex in the `REGEX_PATTERNS` object.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             	|
-|                `sortBy`               	|     `String[]`     	| `"resolution"`, `"quality"`, `"size"`, `"visualTag"`                                                                                             	| Change the order of this list to change the priority for which the results are sorted by.<br><br>`resolution` - sort by the resolution of the file e.g. 1080p, 720p. The better the resolution (determined by the resolution's position in the `resolution` list) the higher the result.<br>`quality` - sort by the quality of the file, e.g. BluRay, WEBRip. The better the quality (determined by the quality's position in the `qualities` list) the higher the result.<br>`size` - sort by the size of file e.g. 12GB. The higher the size the higher they show in the results.<br>`visualTag` - sort by the priority of the visual tags. Files with a visual tag are sorted higher and between files that both have visual tags, the order of the visual tag in the `visualTags` list will determine their order.<br><br>Examples:<br><br>If you want all 2160p results to show first with those results being sorted by size, then do resolution, then size<br>If you want results to be sorted by size regardless of resolution, only have size in the list.<br>If you want to see all HDR results first, and sort those results and the rest by size, then put `visualTag` and `size` in the list.  	|
-| `considerHdrTagsAsEqual`              	| `boolean`          	| `true`, `false`                                                                                                                                  	| When sorting by visualTag, if this value is set to false, the HDR tags (HDR, HDR10, HDR10+) will be considered differently, and depending on their position in the visualTags list, they will be sorted accordingly. <br><br>For example, if HDR10+ was placed first, then all HDR10+ files will appear first, regardless of if there are HDR files that rank higher based on other factors.<br><br>With this value set to true, all HDR tags are considered equal and if you were sorting by `visualTag`, then `size`, a HDR file could appear above a HDR10+ file if the size of the HDR file was greater.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                	|
-|              `addonName`              	|      `String`      	| any                                                                                                                                              	| Change the value contained in this string to change the name of the addon that appears in Stremio in the addon list<br>and in the stream results.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           	|
-|          `prioritiseLanguage`         	| `String` \| `null` 	| See the languages object in the `REGEX_PATTERNS` object for a full list.<br><br>Set to `null` to disable prioritising specific language results. 	| By setting a prioritised language, you are pushing any results that have that language to the top.<br><br>However, parsed information about languages may be incorrect and filenames do not contain the language<br>that is contained within the file sometimes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          	|
+- Go to [https://dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up) and create a free account.
+
+### 4. Import the Code to Cloudflare
+
+- In the Cloudflare dashboard, click on **Workers & Pages** in the left menu.
+- Click **Create** or **Import a repository**.
+- Select **GitHub** and authorize Cloudflare if needed.
+- Find and select the repository you forked (`stremio-premiumize-addon`).
+- For the project name, use: `stremio-premiumize`
+- Click **Deploy**.
+
+### 5. Add Your API Keys
+
+- In your Worker dashboard, go to **Settings** > **Variables & Secrets**.
+- Click **Add variable** for each key:
+    - `PREMIUMIZE_API_KEY` — your Premiumize API key
+    - `PREMIUMIZE_FOLDER_ID` — (optional) the folder ID you want to use
+    - `RPDB_API_KEY` — (optional) your RPDB API key for posters
+- Save each variable after adding.
+
+### 6. Get Your Addon URL
+
+- After deployment, at the top click **View this worker**.
+- Copy the URL shown (it will look like `https://stremio-premiumize.yourname.workers.dev`).
+
+### 7. Install the Addon
+
+- Open Stremio.
+- Go to the **Add-ons** section.
+- Click **Install Add-on via URL**.
+- Paste the URL you copied from Cloudflare.
+- Click **Install**.
+
+## Example: Folder and File Structure
+
+Media
+├── Movies
+│   └── How to train your dragon [tt26743210-1087192].mp4
+│   └── Some Movie.mp4
+├── Documentaries
+│   └── Some Documentary.mp4
+├── Series
+│   └── Severance [tt11280740-95396]
+│       ├── Severance S01E01 [tt11280740-95396].mkv
+│       └── Severance S01E02 [tt11280740-95396].mkv
+│   └── My Show
+│       ├── My Show S01E01.mp4
+│       └── My Show S01E02.mp4
+└── Anime
+    └── Kaguya-sama Love is War [tt9522300-83121]
+        ├── Kaguya-sama Love is War S01E01 [tt9522300-83121].mp4
+        ├── Kaguya-sama Love is War S01E02 [tt9522300-83121].mp4
+    └── Another Anime
+        ├── Another Anime S01E01.mp4
+        └── Another Anime
+
+**Tips:**
+- For best results and metadata, add the `[IMDBID-TMDBID]` format in your file and folder names.
+- Series episodes must include the `SXXEXX` pattern (e.g., `S01E02`) at the end of the filename.
+- Files and folders without IDs will only show on the Addon catalogs, and won't have posters or rich metadata.
