@@ -25,7 +25,6 @@ Optionally, you can add an API key from [Rating Poster Database (RPDB)](https://
 - Optional poster images using RPDB API key.
 - Simple deployment as a Cloudflare Worker.
 
-
 ## Deployment
 
 This addon is designed to be deployed as a worker on Cloudflare Workers.
@@ -75,8 +74,9 @@ If you don't have one, go to [github.com](https://github.com/) and sign up for a
 - Paste the URL you copied from Cloudflare.
 - Click **Install**.
 
-## Example: Folder and File Structure
+## File Structure (Example)
 
+```
 Media
 ├── Movies
 │   └── How to train your dragon [tt26743210-1087192].mp4
@@ -97,6 +97,7 @@ Media
     └── Another Anime
         ├── Another Anime S01E01.mp4
         └── Another Anime
+```
 
 **Tips:**
 - For best results and metadata, add the `[IMDBID-TMDBID]` format in your file and folder names.
